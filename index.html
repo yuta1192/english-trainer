@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="English Trainer" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0f172a" />
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iIzBmMTcyYSIgcng9IjQwIi8+PHRleHQgeD0iOTAiIHk9IjEyMCIgZm9udC1zaXplPSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzOGJkZjgiPkUjPC90ZXh0Pjwvc3ZnPg==" />
+<title>My English Trainer</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155;
+    --text:#f1f5f9; --muted:#94a3b8; --accent:#38bdf8;
+    --accent2:#a78bfa; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --border:#475569;
+    --safe-top:env(safe-area-inset-top,0);
+    --safe-bottom:env(safe-area-inset-bottom,0);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0; overscroll-behavior-y:none}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans",sans-serif;
+    background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%); color:var(--text); min-height:100vh;
+    padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+    -webkit-text-size-adjust:100%;
+  }
+  .container{max-width:980px; margin:0 auto; padding:16px 14px 100px}
+  h1{font-size:22px; margin:0 0 2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:800}
+  .subtitle{color:var(--muted); font-size:12px; margin-bottom:10px}
+  .api-status{display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); margin-bottom:10px; background:var(--panel); padding:6px 10px; border-radius:20px}
+  .api-status .dot{width:8px; height:8px; border-radius:50%; background:var(--bad)}
+  .api-status.ok .dot{background:var(--good)}
+
+  .session-bar{background:linear-gradient(135deg,rgba(56,189,248,0.1),rgba(167,139,250,0.1)); border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap}
+  .session-bar .label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px}
+  .session-bar .title{font-size:14px; font-weight:700; color:var(--text); margin-top:2px; word-break:break-word}
+  .session-bar .progress{display:flex; gap:4px; margin-top:6px; flex-wrap:wrap}
+  .session-bar .progress .step{font-size:10px; padding:2px 6px; border-radius:4px; background:var(--panel2); color:var(--muted)}
+  .session-bar .progress .step.done{background:var(--good); color:#0f172a; font-weight:600}
+  .session-bar .actions{display:flex; gap:6px; flex-shrink:0}
+  .session-bar .actions button{padding:8px 12px; font-size:12px; min-height:36px}
+
+  .tabs{display:flex; gap:4px; margin-bottom:16px; background:var(--panel); padding:5px; border-radius:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex-shrink:0; padding:10px 14px; border:none; background:transparent; color:var(--muted); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; transition:all .2s; white-space:nowrap; min-height:40px}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a}
+
+  .panel{background:var(--panel); border-radius:14px; padding:18px 16px; margin-bottom:14px; border:1px solid var(--border)}
+  .panel h2{margin:0 0 6px; font-size:17px; display:flex; align-items:center; gap:8px; font-weight:700}
+  .step-num{display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a; font-size:13px; font-weight:700}
+  .panel p{color:var(--muted); margin:4px 0 12px; font-size:13px; line-height:1.6}
+
+  input[type=text], input[type=password], textarea, select{
+    width:100%; padding:12px; background:#0f172a; color:var(--text); border:1px solid var(--border);
+    border-radius:8px; font-family:inherit; font-size:16px;
+    -webkit-appearance:none; appearance:none;
+  }
+  textarea{min-height:120px; resize:vertical; line-height:1.5}
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--accent)}
+
+  .btn{
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a; border:none;
+    padding:12px 18px; border-radius:8px; font-weight:700; cursor:pointer; font-size:14px;
+    display:inline-flex; align-items:center; gap:6px; min-height:44px; justify-content:center;
+  }
+  .btn:hover{opacity:.9}
+  .btn.secondary{background:var(--panel2); color:var(--text)}
+  .btn.danger{background:var(--bad); color:#fff}
+  .btn.full{width:100%}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .controls{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+
+  /* Chat */
+  .chat{background:#0f172a; border:1px solid var(--border); border-radius:10px; min-height:300px; max-height:55vh; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; -webkit-overflow-scrolling:touch}
+  .chat .msg{padding:10px 12px; border-radius:12px; max-width:88%; font-size:14px; line-height:1.55; word-wrap:break-word; white-space:pre-wrap}
+  .chat .msg.user{align-self:flex-end; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a; border-bottom-right-radius:4px}
+  .chat .msg.ai{align-self:flex-start; background:var(--panel2); color:var(--text); border-bottom-left-radius:4px}
+  .chat .msg.thinking{align-self:flex-start; background:var(--panel2); color:var(--muted); font-style:italic; opacity:.8}
+  .chat .msg.error{align-self:center; background:rgba(248,113,113,0.15); color:var(--bad); font-size:12px; max-width:100%}
+  .chat-empty{text-align:center; color:var(--muted); font-size:13px; padding:30px 20px}
+  .chat-input-area{display:flex; gap:8px; margin-top:10px; align-items:flex-end}
+  .chat-input-area textarea{min-height:48px; max-height:140px; flex:1; font-size:16px}
+  .mic-btn{background:var(--panel2); border:1px solid var(--border); color:var(--text); width:48px; height:48px; border-radius:50%; flex-shrink:0; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; position:relative}
+  .mic-btn.recording{background:var(--bad); color:#fff}
+  .mic-btn.recording::after{content:''; position:absolute; inset:-4px; border:2px solid var(--bad); border-radius:50%; opacity:0.5; animation:pulse 1.2s infinite}
+  .send-btn{flex-shrink:0; padding:0 16px; min-height:48px}
+
+  /* Step 3 script */
+  .script{background:#0f172a; padding:16px; border-radius:8px; line-height:2.1; font-size:16px; border:1px solid var(--border); position:relative; z-index:1}
+  /* word / vocab / phrase / slash はスクリプトだけでなくセッションパネルや
+     チャットの英語メッセージにも適用する（タップで解説ポップアップが出る要素） */
+  .word{position:relative; cursor:pointer; padding:2px 4px; border-radius:3px; transition:transform .15s; display:inline-block; user-select:none; -webkit-user-select:none}
+  .word:active{transform:scale(0.97); opacity:0.7}
+  .vocab{background:rgba(56,189,248,.18); color:var(--accent); border-bottom:2px solid var(--accent)}
+  .phrase{background:rgba(167,139,250,.18); color:var(--accent2); border-bottom:2px solid var(--accent2)}
+  .slash{color:var(--warn); margin:0 2px}
+
+  .vocab-popup{position:fixed; background:#0f172a; border:1px solid var(--accent); border-radius:10px; padding:14px; max-width:320px; z-index:1000; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; font-size:13px; line-height:1.6}
+  .vocab-popup .term{font-size:15px; font-weight:700; color:var(--accent); margin-bottom:4px; padding-right:30px}
+  .vocab-popup .meaning{color:var(--text); margin-bottom:8px}
+  .vocab-popup .note{color:var(--muted); font-size:12px; margin-bottom:8px; padding:6px; background:var(--panel); border-radius:6px}
+  .vocab-popup .example{color:var(--text); font-style:italic; font-size:12px; padding:6px; background:var(--panel); border-radius:6px; margin-bottom:8px}
+  .vocab-popup .close{position:absolute; top:4px; right:8px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:22px; padding:4px 8px; line-height:1}
+  .add-btn{display:block; width:100%; margin-top:6px; padding:10px; background:var(--panel2); border:none; border-radius:6px; color:var(--text); cursor:pointer; font-size:13px}
+  .add-btn.added{background:var(--good); color:#0f172a}
+
+  /* WPM */
+  .wpm-display{text-align:center; padding:20px 10px}
+  .wpm-num{font-size:64px; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; line-height:1}
+  .wpm-label{color:var(--muted); font-size:14px; margin-top:6px}
+  @keyframes pulse{0%,100%{opacity:0.6; transform:scale(1)}50%{opacity:0; transform:scale(1.3)}}
+  .recording{animation:pulse 1.5s infinite}
+  .transcript{background:#0f172a; padding:12px; border-radius:8px; min-height:80px; margin-top:12px; font-size:14px; line-height:1.7; color:var(--muted); border:1px solid var(--border)}
+  .history-bar{display:flex; align-items:flex-end; gap:4px; height:120px; padding:10px 0; border-bottom:1px solid var(--border)}
+  .history-bar .bar{flex:1; min-width:8px; background:linear-gradient(180deg,var(--accent),var(--accent2)); border-radius:4px 4px 0 0; transition:height .3s}
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px}
+  .stat{background:var(--panel2); padding:12px 8px; border-radius:8px; text-align:center}
+  .stat .v{font-size:22px; font-weight:700; color:var(--accent)}
+  .stat .l{font-size:11px; color:var(--muted); margin-top:2px}
+
+  /* Cards */
+  .word-card{background:var(--panel2); padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .word-card .term{font-weight:700; color:var(--accent); font-size:14px}
+  .word-card .meaning{font-size:12px; color:var(--muted); margin-top:2px}
+  .word-card .status{display:flex; gap:4px; flex-shrink:0}
+  .word-card .status button{padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; font-size:11px; min-height:32px}
+  .word-card .status button.active.learning{background:var(--warn); color:#0f172a; border-color:var(--warn)}
+  .word-card .status button.active.mastered{background:var(--good); color:#0f172a; border-color:var(--good)}
+
+  /* Checklist */
+  .check-item{display:flex; align-items:center; gap:10px; padding:10px; border-radius:6px; cursor:pointer; min-height:44px}
+  .check-item input{width:20px; height:20px; cursor:pointer; accent-color:var(--accent); flex-shrink:0}
+  .check-item.done span{text-decoration:line-through; color:var(--muted)}
+
+  .legend{display:flex; gap:14px; font-size:12px; color:var(--muted); margin-bottom:12px; flex-wrap:wrap}
+  .legend .dot{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle}
+  details{background:var(--panel2); padding:10px 14px; border-radius:8px; margin-top:10px}
+  details summary{cursor:pointer; font-weight:600; font-size:13px}
+  details[open] summary{margin-bottom:8px}
+  details ul{margin:6px 0; padding-left:20px; font-size:12px; color:var(--muted); line-height:1.8}
+  .empty{text-align:center; padding:30px; color:var(--muted); font-size:13px}
+  .info{background:rgba(56,189,248,0.08); border-left:3px solid var(--accent); padding:10px 12px; border-radius:6px; font-size:12px; color:var(--text); line-height:1.6; margin:10px 0}
+  .warning{background:rgba(251,191,36,0.08); border-left:3px solid var(--warn); padding:10px 12px; border-radius:6px; font-size:12px; color:var(--text); line-height:1.6; margin:10px 0}
+
+  .session-card{background:var(--panel2); padding:14px; border-radius:10px; border:1px solid var(--border)}
+  .session-card.current{border:2px solid var(--accent); background:rgba(56,189,248,0.05)}
+  .session-section{margin-top:8px; border-top:1px solid var(--border); padding-top:6px}
+  .session-section summary{cursor:pointer; padding:6px 0; font-size:13px; font-weight:600; list-style:none}
+  .session-section summary::-webkit-details-marker{display:none}
+  .session-section summary::before{content:'▸ '; transition:transform .2s; display:inline-block}
+  .session-section[open] summary::before{transform:rotate(90deg)}
+  .session-content{background:#0f172a; padding:10px; border-radius:6px; margin-top:6px; max-height:400px; overflow-y:auto; font-size:13px; line-height:1.7; white-space:pre-wrap}
+
+  .spinner{display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.3); border-radius:50%; border-top-color:#fff; animation:spin 0.7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media(max-width:600px){
+    .container{padding:12px 10px 80px}
+    h1{font-size:20px}
+    .panel{padding:14px 12px}
+    .script{font-size:15px; padding:12px; line-height:2.3}
+    .wpm-num{font-size:52px}
+    .tab{padding:9px 12px; font-size:12px}
+    .stats{gap:6px}
+    .stat .v{font-size:18px}
+    .chat{min-height:240px; max-height:50vh}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>My English Trainer</h1>
+  <div class="subtitle">1日20分でペラペラに — AI内蔵スタンドアロン版</div>
+  <div class="api-status ok" id="api-status" style="display:none"><span class="dot"></span><span id="api-status-text">接続済</span></div>
+
+  <div class="session-bar">
+    <div style="min-width:0; flex:1">
+      <div class="label">現在のセッション</div>
+      <div class="title" id="current-session-title">なし — 新規開始してください</div>
+      <div class="progress" id="session-progress">
+        <span class="step" data-step="step1">① 壁打ち</span>
+        <span class="step" data-step="script">② Script</span>
+        <span class="step" data-step="step4">④ Q&A</span>
+        <span class="step" data-step="feedback">📝 振返り</span>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="new-session-btn">🆕 新規</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="step1">① 壁打ち</button>
+    <button class="tab" data-tab="step2">② Script</button>
+    <button class="tab" data-tab="step3">③ 音読</button>
+    <button class="tab" data-tab="step4">④ Q&A</button>
+    <button class="tab" data-tab="step5">⑤ WPM</button>
+    <button class="tab" data-tab="vocab">📚 単語</button>
+    <button class="tab" data-tab="sessions">💬 セッション</button>
+    <button class="tab" data-tab="routine">📅 ルーティン</button>
+  </div>
+
+  <!-- SETTINGS (hidden — values are hardcoded in script via APP_CONFIG) -->
+  <section id="settings" class="tabpanel" style="display:none" aria-hidden="true">
+    <input type="password" id="api-key" autocomplete="off" hidden />
+    <select id="model-select" hidden>
+      <option value="claude-sonnet-4-5">Claude Sonnet 4.5</option>
+      <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+      <option value="claude-opus-4-5">Claude Opus 4.5</option>
+    </select>
+    <input type="text" id="theme" hidden />
+    <select id="level-select" hidden>
+      <option value="beginner">初級</option>
+      <option value="intermediate">中級</option>
+      <option value="advanced" selected>上級（C1相当）</option>
+    </select>
+    <button id="save-settings" hidden></button>
+  </section>
+
+  <!-- STEP 1 -->
+  <section id="step1" class="tabpanel">
+    <div class="panel">
+      <h2><span class="step-num">1</span>日本語で壁打ち</h2>
+      <p>テーマについて思考整理。1セッションのスタート地点です。</p>
+      <div class="chat" id="step1-chat">
+        <div class="chat-empty">「会話開始」を押すと、Claudeから質問が来ます。<br>マイクは1回タップで開始、もう一度タップで停止です。</div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="step1-input" placeholder="回答を入力（または🎙で話す）" rows="1"></textarea>
+        <button class="mic-btn" id="step1-mic" data-lang="ja-JP">🎙</button>
+        <button class="btn send-btn" id="step1-send">送信</button>
+      </div>
+      <div class="controls" style="margin-top:8px">
+        <button class="btn secondary" id="step1-start">🔄 会話を最初から</button>
+      </div>
+      <div class="info" style="margin-top:10px">💾 会話は現在のセッションに自動保存されます。新テーマは上の「🆕 新規」から。</div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section id="step2" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2><span class="step-num">2</span>英語スクリプト作成</h2>
+      <p>Step 1の対話をもとに、AIが英語スクリプトを生成します。</p>
+      <div class="controls">
+        <button class="btn full" id="generate-script">✨ Step 1の会話からスクリプトを生成</button>
+      </div>
+      <label style="font-size:13px; color:var(--muted); display:block; margin:14px 0 6px">英語スクリプト</label>
+      <textarea id="step2-script" style="min-height:240px"></textarea>
+      <div class="controls">
+        <button class="btn" id="apply-script">Step 3に反映</button>
+        <button class="btn secondary" id="reset-script">サンプルに戻す</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section id="step3" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2><span class="step-num">3</span>音読学習</h2>
+      <p>重要表現をタップで解説。再生ボタンで音声確認。</p>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent)"></span>重要単語</span>
+        <span><span class="dot" style="background:var(--accent2)"></span>キーフレーズ</span>
+        <span><span class="dot" style="background:var(--warn)"></span>区切り（/）</span>
+      </div>
+      <div class="controls" style="margin-bottom:14px">
+        <button class="btn" id="play-script">▶ 全文再生</button>
+        <button class="btn secondary" id="stop-script">■ 停止</button>
+        <button class="btn secondary" id="toggle-slash">/ スラッシュ</button>
+        <select id="rate-select" style="width:auto; padding:8px 10px">
+          <option value="0.7">0.7×</option>
+          <option value="0.85">0.85×</option>
+          <option value="1.0" selected>1.0×</option>
+          <option value="1.15">1.15×</option>
+        </select>
+      </div>
+      <div class="controls" style="margin-bottom:14px">
+        <button class="btn secondary full" id="analyze-vocab">🔍 AIで重要表現を抽出</button>
+      </div>
+      <div id="script-display" class="script"></div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section id="step4" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2><span class="step-num">4</span>英語Q&A対話</h2>
+      <p>Claudeと英語で会話練習。マイクは1回タップで開始/停止。</p>
+      <div class="chat" id="step4-chat">
+        <div class="chat-empty">「会話開始」を押すと、Claudeが英語で質問してきます。</div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="step4-input" placeholder="Type your response (or use mic)..." rows="1"></textarea>
+        <button class="mic-btn" id="step4-mic" data-lang="en-US">🎙</button>
+        <button class="btn send-btn" id="step4-send">Send</button>
+      </div>
+      <div class="controls" style="margin-top:8px">
+        <button class="btn secondary" id="step4-start">🔄 会話を最初から</button>
+        <button class="btn secondary" id="step4-feedback">📝 フィードバック取得</button>
+      </div>
+      <details>
+        <summary>🔊 設定</summary>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px">
+          <input type="checkbox" id="auto-speak" checked style="width:18px; height:18px; accent-color:var(--accent)">
+          AIの返答を自動音声再生する
+        </label>
+      </details>
+    </div>
+  </section>
+
+  <!-- STEP 5 -->
+  <section id="step5" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2><span class="step-num">5</span>WPM測定</h2>
+      <p>マイクで英語スピーキング速度を測定。</p>
+      <div class="wpm-display">
+        <div class="wpm-num" id="wpm-current">—</div>
+        <div class="wpm-label">Words Per Minute</div>
+      </div>
+      <div class="controls" style="justify-content:center">
+        <button class="btn" id="record-btn">🎙 録音開始</button>
+        <button class="btn secondary" id="save-wpm" disabled>💾 結果を保存</button>
+      </div>
+      <div class="transcript" id="transcript">録音を開始すると、ここに話した内容が表示されます。</div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="stat-best">—</div><div class="l">ベスト</div></div>
+        <div class="stat"><div class="v" id="stat-avg">—</div><div class="l">平均</div></div>
+        <div class="stat"><div class="v" id="stat-count">0</div><div class="l">回数</div></div>
+      </div>
+      <h3 style="font-size:13px; margin:16px 0 6px; color:var(--muted)">📈 履歴（直近20回）</h3>
+      <div class="history-bar" id="history-bar"></div>
+      <div class="controls" style="margin-top:14px">
+        <button class="btn secondary" id="clear-history">履歴クリア</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOCAB -->
+  <section id="vocab" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2>📚 単語帳</h2>
+      <div class="stats">
+        <div class="stat"><div class="v" id="vocab-total">0</div><div class="l">総数</div></div>
+        <div class="stat"><div class="v" id="vocab-learning">0</div><div class="l">学習中</div></div>
+        <div class="stat"><div class="v" id="vocab-mastered">0</div><div class="l">習得済</div></div>
+      </div>
+      <div style="display:grid; gap:8px; margin-top:14px" id="word-list"></div>
+    </div>
+  </section>
+
+  <!-- SESSIONS -->
+  <section id="sessions" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2>💬 セッション一覧</h2>
+      <p>1セッション = 1テーマの練習サイクル全体（壁打ち → スクリプト → Q&A → 振り返り → WPM）。各セッションを展開して復習できます。</p>
+      <div style="display:flex; gap:8px; margin:10px 0">
+        <input type="text" id="session-search" placeholder="🔍 タイトル・テーマ・本文で検索" style="font-size:14px; padding:10px" />
+      </div>
+      <div id="session-list" style="display:grid; gap:12px"></div>
+      <h3 style="font-size:13px; margin-top:20px; color:var(--muted)">📦 バックアップ</h3>
+      <div class="controls">
+        <button class="btn secondary" id="export-sessions-txt">📥 .txt エクスポート</button>
+        <button class="btn secondary" id="export-sessions-json">📦 JSON エクスポート</button>
+        <button class="btn secondary" id="import-sessions">📤 インポート</button>
+        <input type="file" id="import-file" accept=".json" style="display:none">
+      </div>
+    </div>
+  </section>
+
+  <!-- ROUTINE -->
+  <section id="routine" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2>📅 1週間ルーティン</h2>
+      <div id="routine-list">
+        <label class="check-item"><input type="checkbox" data-key="r-sun" /><span><b>週末</b>：① 壁打ち + ② スクリプト作成</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-mon" /><span><b>月曜</b>：③ 音読 ×10回</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-tue" /><span><b>火曜</b>：③ 感情込めて音読 ×10回</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-wed" /><span><b>水曜</b>：④ Q&A + フィードバック</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-thu" /><span><b>木曜</b>：④ Q&A + フィードバック</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-fri" /><span><b>金曜</b>：⑤ 独り言 + WPM測定</span></label>
+        <label class="check-item"><input type="checkbox" data-key="r-sat" /><span><b>土曜</b>：⑤ + 翌週分の準備</span></label>
+      </div>
+      <div class="controls">
+        <button class="btn secondary" id="reset-routine">今週分をリセット</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="vocab-popup" id="vocab-popup">
+  <button class="close" onclick="document.getElementById('vocab-popup').style.display='none'">×</button>
+  <div class="term" id="vp-term"></div>
+  <div class="meaning" id="vp-meaning"></div>
+  <div class="note" id="vp-note"></div>
+  <div class="example" id="vp-example"></div>
+  <button class="btn secondary full" id="vp-play" style="margin-top:6px">🔊 音声再生</button>
+  <button class="add-btn" id="vp-add">＋ 単語帳に追加</button>
+</div>
+
+<script>
+// =============== Default content ===============
+const DEFAULT_VOCAB = {
+  "took some turns":{meaning:"思いがけない展開を見せた",note:"take a turn = 状況が変わる。",example:"My career took some turns I didn't expect."},
+  "climbing the ladder":{meaning:"出世の階段を上る",note:"corporate ladder と組み合わせる。",example:"He spent ten years climbing the corporate ladder."},
+  "you know the drill":{meaning:"分かるでしょ、いつものやつ",note:"カジュアル表現。",example:"Friday meetings — you know the drill."},
+  "turning point":{meaning:"転機",note:"人生の語りで頻出。",example:"The turning point was meeting my mentor."},
+  "fell apart":{meaning:"崩壊した",note:"計画や関係に。",example:"The plan fell apart."},
+  "insanely tight":{meaning:"とんでもなくキツい",note:"insanely + 形容詞 で強調。",example:"We had an insanely tight deadline."},
+  "burned out":{meaning:"燃え尽きた",note:"仕事の話で必須。",example:"The team was completely burned out."},
+  "pulling this off":{meaning:"成し遂げる",note:"pull off = 困難なことを成功させる。",example:"There's no way we're pulling this off."},
+  "regrouped":{meaning:"仕切り直した",note:"チームを再編成。",example:"We regrouped and tried again."},
+  "scrapping":{meaning:"白紙にする",note:"scrap = 計画を破棄。",example:"We scrapped the plan."},
+  "things clicked":{meaning:"噛み合った",note:"click = うまく噛み合う。",example:"Once we changed approach, things clicked."},
+  "way better":{meaning:"はるかに良い",note:"way + 比較級 で強調。",example:"This is way better than before."},
+  "took away from it":{meaning:"そこから学んだ",note:"takeaway = 学び。",example:"What I took away was the value of saying no."},
+  "grinding harder":{meaning:"ガムシャラに頑張る",note:"grind = ひたすら努力。",example:"You can't keep grinding harder forever."},
+  "step back":{meaning:"一歩引く",note:"距離を置いて見る。",example:"Sometimes you need to step back."},
+  "show up":{meaning:"向き合う、存在感を持つ",note:"単に来る以上の意味。",example:"How I show up at work has changed."},
+  "moving the needle":{meaning:"本質的インパクトを出す",note:"ビジネス頻出。",example:"I want to focus on what moves the needle."},
+  "going forward":{meaning:"今後",note:"ビジネス向き。",example:"Going forward, we'll prioritize quality."},
+  "genuinely":{meaning:"心から",note:"really より大人っぽい。",example:"I genuinely respect them."},
+  "blew me away":{meaning:"めちゃくちゃ感動した",note:"It blew me away. の形。",example:"Their work blew me away."},
+  "had no idea":{meaning:"全く知らなかった",note:"didn't know より感情がこもる。",example:"I had no idea it would be this hard."},
+  "ended up":{meaning:"気づいたら〜していた",note:"ストーリーテリング必須。",example:"We ended up staying for hours."}
+};
+
+const DEFAULT_SCRIPT = `So, looking back at the last couple of years, my career has honestly taken some turns I never saw coming. I used to think success meant climbing the ladder as fast as possible — bigger title, bigger paycheck, you know the drill. But somewhere along the way, that stopped feeling meaningful.
+
+The turning point for me was leading a project that completely fell apart in the middle. We had this insanely tight deadline, the team was burned out, and I remember thinking, "There's no way we're pulling this off." But instead of pushing harder, we stopped, we regrouped, and we ended up scrapping half the plan. And weirdly, that's when things clicked. The new approach was way better than what we'd originally pitched.
+
+What I took away from it is that real growth doesn't come from grinding harder — it comes from being willing to step back and rethink. That's kind of changed how I show up at work now. I care less about looking impressive, and more about actually moving the needle.
+
+So, going forward, I want to keep building things that matter, with people I genuinely respect. That's what success looks like to me now.`;
+
+// =============== APP CONFIG (EDIT HERE) ===============
+// ▼ ここにあなたの Anthropic APIキーを貼り付けてください
+// ▼ このファイルは絶対に公開リポジトリ / 公開URLに置かないこと
+const APP_CONFIG = {
+  apiKey: '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',   // ← あなたのキーに置き換える
+  model:  'claude-sonnet-4-5',             // 'claude-sonnet-4-5' / 'claude-haiku-4-5' / 'claude-opus-4-5'
+  theme:  '仕事・キャリア',                 // 学習テーマ
+  level:  'advanced'                       // 'beginner' / 'intermediate' / 'advanced'
+};
+
+// =============== State ===============
+const state = {
+  apiKey: APP_CONFIG.apiKey,
+  model:  APP_CONFIG.model,
+  theme:  APP_CONFIG.theme,
+  level:  APP_CONFIG.level,
+  vocab: JSON.parse(localStorage.getItem('et-vocab')||'{}'),
+  customVocab: JSON.parse(localStorage.getItem('et-custom-vocab')||'{}'),
+  script: localStorage.getItem('et-script')||DEFAULT_SCRIPT,
+  wpmHistory: JSON.parse(localStorage.getItem('et-wpm')||'[]'),
+  routine: JSON.parse(localStorage.getItem('et-routine')||'{}'),
+  sessions: JSON.parse(localStorage.getItem('et-sessions')||'[]'),
+  currentSessionId: localStorage.getItem('et-current-session')||'',
+  step1History: JSON.parse(localStorage.getItem('et-step1-history')||'[]'),
+  step4History: JSON.parse(localStorage.getItem('et-step4-history')||'[]'),
+  showSlash: false
+};
+
+function getActiveVocab(){return {...DEFAULT_VOCAB, ...state.customVocab}}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
+function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+
+// Unified text processor: handles markdown (**bold**, `code`, headers) and vocab highlighting
+function processText(text, opts={}){
+  if(!text) return '';
+  let working = String(text);
+  const vocabHolders = [];
+  const mdHolders = [];
+
+  // 1. Capture vocab matches first (raw text, before escaping)
+  if(opts.vocab){
+    const vocab = getActiveVocab();
+    const phrases = Object.keys(vocab).sort((a,b)=>b.length-a.length);
+    phrases.forEach(phrase=>{
+      const re = new RegExp('('+escapeRegex(phrase)+')','gi');
+      working = working.replace(re, (match)=>{
+        vocabHolders.push({original:match, term:phrase});
+        return `\x00V${vocabHolders.length-1}\x00`;
+      });
+    });
+  }
+
+  // 2. Capture markdown patterns
+  if(opts.markdown!==false){
+    // **bold** (non-greedy, no newline crossing)
+    working = working.replace(/\*\*([^\*\n]+?)\*\*/g, (m, p1)=>{
+      mdHolders.push({tag:'strong', content:p1});
+      return `\x00M${mdHolders.length-1}\x00`;
+    });
+    // `inline code`
+    working = working.replace(/`([^`\n]+?)`/g, (m, p1)=>{
+      mdHolders.push({tag:'code', content:p1});
+      return `\x00M${mdHolders.length-1}\x00`;
+    });
+  }
+
+  // 3. Escape HTML
+  let html = escapeHtml(working);
+
+  // 4. Restore vocab placeholders
+  vocabHolders.forEach((p, i)=>{
+    const cls = p.term.includes(' ') ? 'phrase' : 'vocab';
+    html = html.replace(`\x00V${i}\x00`, `<span class="word ${cls}" data-term="${escapeHtml(p.term)}">${escapeHtml(p.original)}</span>`);
+  });
+
+  // 5. Restore markdown placeholders
+  mdHolders.forEach((m, i)=>{
+    const inner = escapeHtml(m.content);
+    if(m.tag==='code'){
+      html = html.replace(`\x00M${i}\x00`, `<code style="background:rgba(0,0,0,0.3);padding:1px 5px;border-radius:3px;font-size:0.92em">${inner}</code>`);
+    } else {
+      html = html.replace(`\x00M${i}\x00`, `<${m.tag}>${inner}</${m.tag}>`);
+    }
+  });
+
+  // 6. Headers (process on escaped text)
+  if(opts.markdown!==false){
+    html = html.replace(/^### (.+?)$/gm, '<h4 style="margin:8px 0 4px;font-size:14px;color:var(--accent);font-weight:700">$1</h4>');
+    html = html.replace(/^## (.+?)$/gm, '<h3 style="margin:10px 0 4px;font-size:15px;color:var(--accent);font-weight:700">$1</h3>');
+    html = html.replace(/^# (.+?)$/gm, '<h2 style="margin:12px 0 4px;font-size:16px;color:var(--accent);font-weight:700">$1</h2>');
+  }
+
+  return html;
+}
+
+// Attach vocab popup clicks to all .word elements inside a container
+function attachVocabClicks(container){
+  if(!container) return;
+  container.querySelectorAll('.word').forEach(w=>{
+    if(w.dataset.bound) return;
+    w.dataset.bound = '1';
+    const handler = (e)=>{
+      e.stopPropagation();
+      e.preventDefault();
+      showVocab(e, w.dataset.term);
+    };
+    w.addEventListener('click', handler);
+    w.addEventListener('touchend', handler);
+  });
+}
+function formatDate(ts){
+  const d=new Date(ts), pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function levelText(l){return {beginner:'初級', intermediate:'中級', advanced:'上級（C1相当・ネイティブ口語表現を多用）'}[l]||'上級'}
+
+// =============== Session management ===============
+function getCurrentSession(){return state.sessions.find(s=>s.id===state.currentSessionId)||null}
+function saveSessions(){
+  localStorage.setItem('et-sessions', JSON.stringify(state.sessions));
+  renderSessionBar();
+}
+function createSession(title){
+  const id='sess-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+  const sess={
+    id, title:title||state.theme, theme:state.theme,
+    createdAt:Date.now(), updatedAt:Date.now(),
+    step1Chat:[], script:'', step4Chat:[], feedback:'', wpmRecords:[]
+  };
+  state.sessions.unshift(sess);
+  state.currentSessionId=id;
+  localStorage.setItem('et-current-session', id);
+  state.step1History=[]; state.step4History=[];
+  localStorage.setItem('et-step1-history','[]');
+  localStorage.setItem('et-step4-history','[]');
+  saveSessions();
+  return sess;
+}
+function ensureSession(){return getCurrentSession()||createSession(state.theme)}
+function updateCurrentSession(updates){
+  const sess=ensureSession();
+  Object.assign(sess, updates, {updatedAt:Date.now()});
+  saveSessions();
+  return sess;
+}
+function loadSession(id){
+  const sess=state.sessions.find(s=>s.id===id);
+  if(!sess) return;
+  state.currentSessionId=id;
+  localStorage.setItem('et-current-session', id);
+  state.step1History=(sess.step1Chat||[]).slice();
+  state.step4History=(sess.step4Chat||[]).slice();
+  localStorage.setItem('et-step1-history', JSON.stringify(state.step1History));
+  localStorage.setItem('et-step4-history', JSON.stringify(state.step4History));
+  if(sess.script){
+    state.script=sess.script;
+    localStorage.setItem('et-script', state.script);
+    const sEl=document.getElementById('step2-script');
+    if(sEl) sEl.value=state.script;
+  }
+  renderStep1History();
+  renderStep4History();
+  renderScript();
+  renderSessionBar();
+  alert('セッションを読み込みました');
+  document.querySelector('[data-tab="step1"]').click();
+}
+window.loadSession = loadSession;
+
+function deleteSession(id){
+  if(!confirm('このセッションを削除しますか？')) return;
+  state.sessions=state.sessions.filter(s=>s.id!==id);
+  if(state.currentSessionId===id){
+    state.currentSessionId='';
+    localStorage.setItem('et-current-session','');
+    state.step1History=[]; state.step4History=[];
+    localStorage.setItem('et-step1-history','[]');
+    localStorage.setItem('et-step4-history','[]');
+    renderStep1History(); renderStep4History();
+  }
+  saveSessions();
+  renderSessions();
+}
+window.deleteSession = deleteSession;
+
+function renderSessionBar(){
+  const titleEl=document.getElementById('current-session-title');
+  const progEl=document.getElementById('session-progress');
+  const sess=getCurrentSession();
+  if(!sess){
+    titleEl.textContent='なし — 新規開始してください';
+    progEl.querySelectorAll('.step').forEach(s=>s.classList.remove('done'));
+    return;
+  }
+  titleEl.textContent=sess.title;
+  const done={
+    step1:(sess.step1Chat||[]).length>=2,
+    script:!!(sess.script && sess.script.length>20),
+    step4:(sess.step4Chat||[]).length>=2,
+    feedback:!!sess.feedback
+  };
+  progEl.querySelectorAll('.step').forEach(s=>{
+    if(done[s.dataset.step]) s.classList.add('done');
+    else s.classList.remove('done');
+  });
+}
+
+document.getElementById('new-session-btn').addEventListener('click',()=>{
+  const t=prompt('新しいセッションのタイトル（テーマ）を入力：', state.theme);
+  if(t===null) return;
+  const title=t.trim()||state.theme;
+  createSession(title);
+  renderStep1History();
+  renderStep4History();
+  alert('新セッション「'+title+'」を開始しました。\n①壁打ちから始めてください。');
+  document.querySelector('[data-tab="step1"]').click();
+});
+
+// Auto-save current state to session (called on tab switch and key actions)
+function autoSaveToSession(){
+  const sess = getCurrentSession();
+  if(!sess) return;
+  const updates = {};
+  let dirty = false;
+  // Script
+  const scriptEl = document.getElementById('step2-script');
+  if(scriptEl && scriptEl.value && scriptEl.value !== sess.script){
+    updates.script = scriptEl.value;
+    dirty = true;
+  }
+  // Step 1 / Step 4 history (already saved via send, but double check)
+  if(JSON.stringify(state.step1History) !== JSON.stringify(sess.step1Chat||[])){
+    updates.step1Chat = [...state.step1History];
+    dirty = true;
+  }
+  if(JSON.stringify(state.step4History) !== JSON.stringify(sess.step4Chat||[])){
+    updates.step4Chat = [...state.step4History];
+    dirty = true;
+  }
+  if(dirty) updateCurrentSession(updates);
+}
+
+// =============== Tabs ===============
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    // Save anything pending before switching
+    autoSaveToSession();
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tabpanel').forEach(p=>p.style.display='none');
+    document.getElementById(btn.dataset.tab).style.display='block';
+    if(btn.dataset.tab==='vocab') renderVocab();
+    if(btn.dataset.tab==='sessions') renderSessions();
+    if(btn.dataset.tab==='step3') renderScript();
+  });
+});
+
+// =============== Settings ===============
+// 設定UIは廃止し、APP_CONFIG（ファイル上部）からのみ値を読み込みます。
+
+function updateApiStatus(){
+  const el=document.getElementById('api-status');
+  if(!el) return;
+  const txt=document.getElementById('api-status-text');
+  if(state.apiKey && state.apiKey.startsWith('sk-ant') && !state.apiKey.includes('YOUR-KEY-HERE')){
+    el.classList.add('ok');
+    if(txt) txt.textContent=`${state.model} 接続済`;
+  } else {
+    el.classList.remove('ok');
+    if(txt) txt.textContent='APIキー未設定（index.htmlを編集）';
+  }
+}
+updateApiStatus();
+
+// 設定UIは非表示。保存ボタンは存在しないが念のためガード。
+const _saveBtn = document.getElementById('save-settings');
+if(_saveBtn){
+  _saveBtn.addEventListener('click',()=>{ /* disabled: keys are hardcoded in APP_CONFIG */ });
+}
+
+// =============== Claude API ===============
+async function callClaude(messages, system, maxTokens=1024){
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){
+    throw new Error('APIキーが未設定です。index.html の APP_CONFIG.apiKey を編集してください。');
+  }
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key':state.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({model:state.model, max_tokens:maxTokens, system:system||undefined, messages})
+  });
+  if(!res.ok){
+    const errText=await res.text();
+    let errMsg=errText;
+    try{const j=JSON.parse(errText); errMsg=j.error?.message||errText}catch(_){}
+    throw new Error(`API Error (${res.status}): ${errMsg}`);
+  }
+  const data=await res.json();
+  return data.content[0].text;
+}
+
+// =============== Chat utilities ===============
+function appendMsg(chatEl, role, content, opts={}){
+  const empty=chatEl.querySelector('.chat-empty');
+  if(empty) empty.remove();
+  const msg=document.createElement('div');
+  msg.className='msg '+role;
+  if(opts.className) msg.className+=' '+opts.className;
+  if(opts.className==='thinking' || opts.className==='error'){
+    msg.textContent=content;
+  } else {
+    msg.innerHTML=processText(content, {markdown:true});
+  }
+  chatEl.appendChild(msg);
+  chatEl.scrollTop=chatEl.scrollHeight;
+  return msg;
+}
+function setThinking(chatEl, on){
+  const existing=chatEl.querySelector('.thinking');
+  if(on && !existing) appendMsg(chatEl, 'ai', '考え中...', {className:'thinking'});
+  else if(!on && existing) existing.remove();
+}
+
+// =============== Step 1 chat ===============
+const step1Chat=document.getElementById('step1-chat');
+const step1Input=document.getElementById('step1-input');
+
+function renderStep1History(){
+  step1Chat.innerHTML='';
+  if(state.step1History.length===0){
+    step1Chat.innerHTML='<div class="chat-empty">「会話開始」を押すと、Claudeから質問が来ます。</div>';
+    return;
+  }
+  state.step1History.forEach(m=>appendMsg(step1Chat, m.role==='user'?'user':'ai', m.content));
+}
+renderStep1History();
+
+async function step1Start(){
+  if(!state.apiKey || state.apiKey.includes('YOUR-KEY-HERE')){alert('APP_CONFIG.apiKey が未設定です。index.html を編集してキーを貼り付けてください。');return}
+  ensureSession();
+  state.step1History=[];
+  step1Chat.innerHTML='';
+  setThinking(step1Chat, true);
+  try{
+    const sess=getCurrentSession();
+    const topic=sess?sess.theme:state.theme;
+    const system=`あなたは英語学習者のための日本語コーチです。ユーザーが「${topic}」について英語でペラペラ話せるようになるため、思考整理を手伝います。\n\nルール：\n- 1回につき1つだけ、短く具体的な質問\n- 抽象的でなく具体的なエピソードを引き出す\n- 共感や褒め言葉は最小限\n- 5-6往復で十分な素材が集まる設計`;
+    const reply=await callClaude([{role:'user', content:`「${topic}」について話せるようになりたいです。最初の質問をお願いします。`}], system, 400);
+    setThinking(step1Chat, false);
+    state.step1History.push({role:'assistant', content:reply});
+    localStorage.setItem('et-step1-history', JSON.stringify(state.step1History));
+    updateCurrentSession({step1Chat:[...state.step1History]});
+    appendMsg(step1Chat, 'ai', reply);
+  }catch(e){
+    setThinking(step1Chat, false);
+    appendMsg(step1Chat, 'ai', '⚠ '+e.message, {className:'error'});
+  }
+}
+document.getElementById('step1-start').addEventListener('click', step1Start);
+
+async function step1Send(){
+  const text=step1Input.value.trim();
+  if(!text) return;
+  ensureSession();
+  if(state.step1History.length===0){
+    await step1Start();
+    if(state.step1History.length===0) return;
+  }
+  appendMsg(step1Chat, 'user', text);
+  state.step1History.push({role:'user', content:text});
+  step1Input.value='';
+  step1Input.style.height='auto';
+  setThinking(step1Chat, true);
+  try{
+    const sess=getCurrentSession();
+    const topic=sess?sess.theme:state.theme;
+    const system=`あなたは英語学習者のための日本語コーチです。ユーザーが「${topic}」について話せるようになるため、思考整理を手伝います。1回につき1つだけ短く深掘りする質問を。`;
+    const reply=await callClaude(state.step1History.map(m=>({role:m.role==='assistant'?'assistant':'user', content:m.content})), system, 400);
+    setThinking(step1Chat, false);
+    state.step1History.push({role:'assistant', content:reply});
+    localStorage.setItem('et-step1-history', JSON.stringify(state.step1History));
+    updateCurrentSession({step1Chat:[...state.step1History]});
+    appendMsg(step1Chat, 'ai', reply);
+  }catch(e){
+    setThinking(step1Chat, false);
+    appendMsg(step1Chat, 'ai', '⚠ '+e.message, {className:'error'});
+  }
+}
+document.getElementById('step1-send').addEventListener('click', step1Send);
+step1Input.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey && !e.isComposing){e.preventDefault(); step1Send()}
+});
+
+['step1-input','step4-input'].forEach(id=>{
+  const ta=document.getElementById(id);
+  ta.addEventListener('input',()=>{
+    ta.style.height='auto';
+    ta.style.height=Math.min(ta.scrollHeight, 140)+'px';
+  });
+});
+
+// =============== Step 2 ===============
+const scriptEl=document.getElementById('step2-script');
+scriptEl.value=state.script;
+scriptEl.addEventListener('input',()=>{
+  state.script=scriptEl.value;
+  localStorage.setItem('et-script', state.script);
+  if(getCurrentSession()) updateCurrentSession({script:state.script});
+});
+
+document.getElementById('generate-script').addEventListener('click', async()=>{
+  if(!state.apiKey || state.apiKey.includes('YOUR-KEY-HERE')){alert('APP_CONFIG.apiKey が未設定です。index.html を編集してキーを貼り付けてください。');return}
+  if(state.step1History.length<2 && !confirm('Step 1の会話が少ないですが続けますか？')) return;
+  const btn=document.getElementById('generate-script');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> 生成中...';
+  try{
+    const sess=getCurrentSession();
+    const topic=sess?sess.theme:state.theme;
+    const convo=state.step1History.map(m=>`[${m.role==='user'?'User':'Coach'}] ${m.content}`).join('\n\n');
+    const system='あなたはネイティブ英語の口語表現に精通したスクリプトライターです。';
+    const prompt=`以下は英語学習者と日本語コーチの対話です。これをもとに、ユーザーが「${topic}」について英語で約1分間（150-180語）語るスクリプトを書いてください。
+
+【条件】
+- レベル：${levelText(state.level)}
+- ネイティブが本当に使う自然な口語表現を多用
+- 感情のこもったカジュアルなトーン
+- 教科書英語ではなく生きた会話の英語
+- 文頭にSo, Honestly, Look 等の自然な前置き
+- 出力はスクリプト本文のみ。前置きや解説は不要
+
+【対話】
+${convo}
+
+スクリプト：`;
+    const reply=await callClaude([{role:'user', content:prompt}], system, 1500);
+    scriptEl.value=reply.trim();
+    state.script=reply.trim();
+    localStorage.setItem('et-script', state.script);
+    updateCurrentSession({script:state.script});
+    btn.innerHTML='✓ 生成＆セッション保存';
+    setTimeout(()=>btn.innerHTML='✨ Step 1の会話からスクリプトを生成', 2000);
+  }catch(e){
+    alert('エラー: '+e.message);
+    btn.innerHTML='✨ Step 1の会話からスクリプトを生成';
+  }finally{
+    btn.disabled=false;
+  }
+});
+
+document.getElementById('apply-script').addEventListener('click',()=>{
+  state.script=scriptEl.value;
+  localStorage.setItem('et-script', state.script);
+  if(getCurrentSession()) updateCurrentSession({script:state.script});
+  renderScript();
+  alert('Step 3に反映しました');
+});
+document.getElementById('reset-script').addEventListener('click',()=>{
+  if(confirm('サンプルに戻しますか？')){
+    scriptEl.value=DEFAULT_SCRIPT;
+    state.script=DEFAULT_SCRIPT;
+    localStorage.setItem('et-script', DEFAULT_SCRIPT);
+    renderScript();
+  }
+});
+
+// =============== Step 3: Script with vocab (improved click responsiveness) ===============
+function renderScript(){
+  const display=document.getElementById('script-display');
+  const text=state.script||DEFAULT_SCRIPT;
+  let html = processText(text, {vocab:true, markdown:false});
+  if(state.showSlash){
+    html=html.replace(/(\S+\s){5,7}/g, m=>m+'<span class="slash">/</span> ');
+  }
+  html=html.replace(/\n\n/g,'</p><p>').replace(/\n/g,' ');
+  display.innerHTML='<p>'+html+'</p>';
+  attachVocabClicks(display);
+}
+
+let popupClickHandler=null;
+function showVocab(e, term){
+  const vocab=getActiveVocab();
+  const data=vocab[term];
+  if(!data) return;
+  const popup=document.getElementById('vocab-popup');
+  document.getElementById('vp-term').textContent=term;
+  document.getElementById('vp-meaning').textContent=data.meaning;
+  document.getElementById('vp-note').textContent='💡 '+data.note;
+  document.getElementById('vp-example').textContent='"'+data.example+'"';
+  // 一旦表示してサイズを測る（display:none のままだとサイズが0になる）
+  popup.style.visibility='hidden';
+  popup.style.display='block';
+  // Position — popup は position:fixed なのでビューポート座標をそのまま使う
+  const target=e.currentTarget||e.target;
+  const rect=target.getBoundingClientRect();
+  const popupH=popup.offsetHeight, popupW=popup.offsetWidth;
+  const vw=window.innerWidth, vh=window.innerHeight;
+  // タップしたワードの真下中央に出す（左右ははみ出さないように補正）
+  let left=rect.left + rect.width/2 - popupW/2;
+  let top=rect.bottom + 8;
+  if(left<10) left=10;
+  if(left+popupW>vw-10) left=vw-popupW-10;
+  // 下に入りきらない場合だけ上に出す
+  if(top+popupH>vh-10){
+    const above=rect.top - popupH - 8;
+    top = above>=10 ? above : Math.max(10, vh-popupH-10);
+  }
+  popup.style.top=top+'px';
+  popup.style.left=left+'px';
+  popup.style.visibility='visible';
+
+  const addBtn=document.getElementById('vp-add');
+  if(state.vocab[term]){addBtn.textContent='✓ 追加済み'; addBtn.classList.add('added')}
+  else{addBtn.textContent='＋ 単語帳に追加'; addBtn.classList.remove('added')}
+  addBtn.onclick=()=>{
+    if(!state.vocab[term]){
+      state.vocab[term]={status:'learning', addedAt:Date.now(), ...data};
+      localStorage.setItem('et-vocab', JSON.stringify(state.vocab));
+      addBtn.textContent='✓ 追加済み';
+      addBtn.classList.add('added');
+    }
+  };
+  document.getElementById('vp-play').onclick=()=>speak(term);
+
+  // Outside click handler (deferred to avoid immediate close)
+  if(popupClickHandler) document.removeEventListener('click', popupClickHandler);
+  setTimeout(()=>{
+    popupClickHandler=(ev)=>{
+      if(!popup.contains(ev.target) && !ev.target.classList.contains('word')){
+        popup.style.display='none';
+        document.removeEventListener('click', popupClickHandler);
+        popupClickHandler=null;
+      }
+    };
+    document.addEventListener('click', popupClickHandler);
+  }, 100);
+}
+
+// AI vocab extraction
+document.getElementById('analyze-vocab').addEventListener('click', async()=>{
+  if(!state.apiKey || state.apiKey.includes('YOUR-KEY-HERE')){alert('APP_CONFIG.apiKey が未設定です。index.html を編集してキーを貼り付けてください。');return}
+  const btn=document.getElementById('analyze-vocab');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> 抽出中...';
+  try{
+    const system='あなたは英語学習教材の編集者です。';
+    const prompt=`以下の英文から、日本人英語学習者が学ぶ価値の高い重要表現（口語フレーズ・コロケーション・慣用句）を10-15個抽出してください。
+
+【出力形式】純粋なJSON配列のみ。前置きや説明は不要。
+[
+  {"term":"原文中の正確な表現","meaning":"日本語の意味","note":"なぜ重要か・使い方のコツ（30字程度）","example":"別の例文"}
+]
+
+【条件】
+- term は原文中に出てくる正確な表記
+- 単語よりフレーズ単位を優先
+- 実用度の高いもの
+
+【英文】
+${state.script}`;
+    const reply=await callClaude([{role:'user', content:prompt}], system, 3000);
+    const m=reply.match(/\[[\s\S]*\]/);
+    if(!m) throw new Error('JSONが見つかりません');
+    const arr=JSON.parse(m[0]);
+    const obj={};
+    arr.forEach(v=>{if(v.term) obj[v.term]={meaning:v.meaning||'',note:v.note||'',example:v.example||''}});
+    state.customVocab=obj;
+    localStorage.setItem('et-custom-vocab', JSON.stringify(state.customVocab));
+    renderScript();
+    btn.innerHTML=`✓ ${arr.length}個抽出`;
+    setTimeout(()=>btn.innerHTML='🔍 AIで重要表現を抽出', 2000);
+  }catch(e){
+    alert('エラー: '+e.message);
+    btn.innerHTML='🔍 AIで重要表現を抽出';
+  }finally{btn.disabled=false}
+});
+
+// Speech synthesis
+function speak(text, rate){
+  if(!('speechSynthesis' in window)){alert('音声合成非対応');return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';
+  u.rate=rate||parseFloat(document.getElementById('rate-select').value);
+  const voices=speechSynthesis.getVoices();
+  const pref=voices.find(v=>v.lang.startsWith('en')&&v.name.includes('Google'))
+          ||voices.find(v=>v.lang==='en-US')
+          ||voices.find(v=>v.lang.startsWith('en'));
+  if(pref) u.voice=pref;
+  speechSynthesis.speak(u);
+}
+window.speak=speak;
+document.getElementById('play-script').addEventListener('click',()=>speak(state.script));
+document.getElementById('stop-script').addEventListener('click',()=>speechSynthesis.cancel());
+document.getElementById('toggle-slash').addEventListener('click',()=>{state.showSlash=!state.showSlash; renderScript()});
+
+// =============== Step 4 ===============
+const step4Chat=document.getElementById('step4-chat');
+const step4Input=document.getElementById('step4-input');
+
+function renderStep4History(){
+  step4Chat.innerHTML='';
+  if(state.step4History.length===0){
+    step4Chat.innerHTML='<div class="chat-empty">「会話開始」を押すと、Claudeが英語で質問してきます。</div>';
+    return;
+  }
+  state.step4History.forEach(m=>appendMsg(step4Chat, m.role==='user'?'user':'ai', m.content));
+}
+renderStep4History();
+
+async function step4Start(){
+  if(!state.apiKey || state.apiKey.includes('YOUR-KEY-HERE')){alert('APP_CONFIG.apiKey が未設定です。index.html を編集してキーを貼り付けてください。');return}
+  ensureSession();
+  state.step4History=[];
+  step4Chat.innerHTML='';
+  setThinking(step4Chat, true);
+  try{
+    const sess=getCurrentSession();
+    const topic=sess?sess.theme:state.theme;
+    const system=`You are a friendly native English conversation partner. The user is practicing speaking English about "${topic}". User level: ${state.level}.\n\nRules:\n- Ask ONE engaging, specific question at a time\n- Keep responses short (1-3 sentences max)\n- Use natural, casual native expressions\n- If short answer, dig deeper\n- React briefly before asking next question\n- Don't correct grammar (that's for feedback later)\n\nReference script for context:\n${state.script}\n\nStart with a warm opening and your first question.`;
+    const reply=await callClaude([{role:'user', content:`Let's start. Ask me your first question about "${topic}".`}], system, 300);
+    setThinking(step4Chat, false);
+    state.step4History.push({role:'assistant', content:reply});
+    localStorage.setItem('et-step4-history', JSON.stringify(state.step4History));
+    updateCurrentSession({step4Chat:[...state.step4History]});
+    appendMsg(step4Chat, 'ai', reply);
+    if(document.getElementById('auto-speak').checked) speak(reply, 1.0);
+  }catch(e){
+    setThinking(step4Chat, false);
+    appendMsg(step4Chat, 'ai', '⚠ '+e.message, {className:'error'});
+  }
+}
+document.getElementById('step4-start').addEventListener('click', step4Start);
+
+async function step4Send(){
+  const text=step4Input.value.trim();
+  if(!text) return;
+  ensureSession();
+  if(state.step4History.length===0){
+    await step4Start();
+    if(state.step4History.length===0) return;
+  }
+  appendMsg(step4Chat, 'user', text);
+  state.step4History.push({role:'user', content:text});
+  step4Input.value='';
+  step4Input.style.height='auto';
+  setThinking(step4Chat, true);
+  try{
+    const sess=getCurrentSession();
+    const topic=sess?sess.theme:state.theme;
+    const system=`You are a friendly native English conversation partner. Topic: "${topic}". Level: ${state.level}. Keep responses short (1-3 sentences) and always end with one specific follow-up question. Don't correct grammar.`;
+    const reply=await callClaude(state.step4History.map(m=>({role:m.role==='assistant'?'assistant':'user', content:m.content})), system, 300);
+    setThinking(step4Chat, false);
+    state.step4History.push({role:'assistant', content:reply});
+    localStorage.setItem('et-step4-history', JSON.stringify(state.step4History));
+    updateCurrentSession({step4Chat:[...state.step4History]});
+    appendMsg(step4Chat, 'ai', reply);
+    if(document.getElementById('auto-speak').checked) speak(reply, 1.0);
+  }catch(e){
+    setThinking(step4Chat, false);
+    appendMsg(step4Chat, 'ai', '⚠ '+e.message, {className:'error'});
+  }
+}
+document.getElementById('step4-send').addEventListener('click', step4Send);
+step4Input.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && !e.shiftKey && !e.isComposing){e.preventDefault(); step4Send()}
+});
+
+document.getElementById('step4-feedback').addEventListener('click', async()=>{
+  if(!state.apiKey || state.apiKey.includes('YOUR-KEY-HERE')){alert('APP_CONFIG.apiKey が未設定です。index.html を編集してキーを貼り付けてください。');return}
+  if(state.step4History.length<2){alert('まず会話を進めてください');return}
+  const btn=document.getElementById('step4-feedback');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> 分析中...';
+  try{
+    const userMsgs=state.step4History.filter(m=>m.role==='user').map(m=>m.content).join('\n---\n');
+    const system='あなたは英語スピーキングコーチです。日本語でフィードバックします。';
+    const prompt=`以下は英語学習者がQ&A練習中に発言した内容です。次の4軸で評価してください：
+
+① 文法の自然さ（不自然な表現があれば修正例を示す）
+② フィラー（Ah, Um）の多用や代替表現（well, you know, actually 等）
+③ 表現の幅（同じ語の繰り返しがないか）
+④ 議論の深さ（具体例があるか）
+
+【出力形式】Markdownで「良かった点」「改善できる点」「次回意識すること」の3セクション。
+
+【ユーザー発言】
+${userMsgs}`;
+    const reply=await callClaude([{role:'user', content:prompt}], system, 2000);
+    appendMsg(step4Chat, 'ai', '📝 フィードバック\n\n'+reply);
+    updateCurrentSession({feedback:reply});
+    btn.innerHTML='✓ 取得＆セッション保存';
+    setTimeout(()=>btn.innerHTML='📝 フィードバック取得', 2000);
+  }catch(e){
+    alert('エラー: '+e.message);
+    btn.innerHTML='📝 フィードバック取得';
+  }finally{btn.disabled=false}
+});
+
+// =============== Mic buttons (toggle on/off, continuous) ===============
+function setupMicButton(btnId, inputId, lang){
+  const btn=document.getElementById(btnId);
+  const input=document.getElementById(inputId);
+  let recognition=null;
+  let isRec=false;
+  let finalText='';
+
+  btn.addEventListener('click',()=>{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){alert('音声認識非対応のブラウザです（Chrome/Edge推奨）');return}
+    if(!isRec){
+      // START
+      recognition=new SR();
+      recognition.lang=lang;
+      recognition.continuous=true;  // 継続録音
+      recognition.interimResults=true;
+      finalText=input.value?(input.value.trim()+' '):'';
+      const baseText=finalText;
+      recognition.onresult=e=>{
+        let interim='';
+        let newFinal='';
+        for(let i=e.resultIndex; i<e.results.length; i++){
+          if(e.results[i].isFinal) newFinal+=e.results[i][0].transcript+' ';
+          else interim+=e.results[i][0].transcript;
+        }
+        finalText+=newFinal;
+        input.value=finalText+interim;
+        input.style.height='auto';
+        input.style.height=Math.min(input.scrollHeight, 140)+'px';
+      };
+      recognition.onerror=e=>{
+        console.warn('mic error:', e.error);
+        if(e.error==='not-allowed'){
+          alert('マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。');
+        } else if(e.error==='no-speech'){
+          // 無音は無視
+        }
+      };
+      recognition.onend=()=>{
+        // 継続録音のためのオートリスタート（ユーザーが明示的に停止していない場合のみ）
+        if(isRec){
+          try{recognition.start()}catch(_){
+            // すぐに再起動できなかった場合は短く待ってリトライ
+            setTimeout(()=>{if(isRec){try{recognition.start()}catch(_){}}}, 100);
+          }
+        } else {
+          btn.classList.remove('recording');
+          btn.textContent='🎙';
+        }
+      };
+      try{
+        recognition.start();
+        isRec=true;
+        btn.classList.add('recording');
+        btn.textContent='⏹';
+      }catch(err){
+        alert('マイク起動エラー: '+err.message);
+      }
+    } else {
+      // STOP
+      isRec=false;
+      try{recognition.stop()}catch(_){}
+      btn.classList.remove('recording');
+      btn.textContent='🎙';
+    }
+  });
+}
+setupMicButton('step1-mic','step1-input','ja-JP');
+setupMicButton('step4-mic','step4-input','en-US');
+
+// =============== Step 5: WPM (toggle mic) ===============
+let wpmRecognition=null;
+let isWpmRecording=false;
+let recStartTime=0;
+let lastTranscript='';
+let lastWpm=0;
+const recordBtn=document.getElementById('record-btn');
+const transcriptEl=document.getElementById('transcript');
+const wpmEl=document.getElementById('wpm-current');
+const saveBtn=document.getElementById('save-wpm');
+
+recordBtn.addEventListener('click',()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('音声認識非対応');return}
+  if(!isWpmRecording){
+    wpmRecognition=new SR();
+    wpmRecognition.lang='en-US';
+    wpmRecognition.continuous=true;
+    wpmRecognition.interimResults=true;
+    let finalText='';
+    wpmRecognition.onresult=e=>{
+      let interim='';
+      for(let i=e.resultIndex; i<e.results.length; i++){
+        const t=e.results[i][0].transcript;
+        if(e.results[i].isFinal) finalText+=t+' ';
+        else interim+=t;
+      }
+      transcriptEl.textContent=finalText+interim;
+      lastTranscript=(finalText+interim).trim();
+    };
+    wpmRecognition.onerror=e=>{
+      console.error('WPM rec error:', e.error);
+      if(e.error==='not-allowed') alert('マイクが拒否されました');
+    };
+    wpmRecognition.onend=()=>{
+      if(isWpmRecording){try{wpmRecognition.start()}catch(_){}}
+    };
+    isWpmRecording=true;
+    recStartTime=Date.now();
+    lastTranscript='';
+    transcriptEl.textContent='🎙 録音中...';
+    recordBtn.textContent='■ 停止';
+    recordBtn.classList.add('recording');
+    saveBtn.disabled=true;
+    try{wpmRecognition.start()}catch(_){}
+  } else {
+    isWpmRecording=false;
+    try{wpmRecognition.stop()}catch(_){}
+    const elapsedSec=(Date.now()-recStartTime)/1000;
+    const words=lastTranscript.split(/\s+/).filter(Boolean).length;
+    const wpm=elapsedSec>0?Math.round(words/(elapsedSec/60)):0;
+    lastWpm=wpm;
+    wpmEl.textContent=wpm;
+    recordBtn.textContent='🎙 録音開始';
+    recordBtn.classList.remove('recording');
+    saveBtn.disabled=wpm<=0;
+    if(words===0) transcriptEl.textContent='音声が認識されませんでした';
+  }
+});
+
+saveBtn.addEventListener('click',()=>{
+  const record={wpm:lastWpm, ts:Date.now(), transcript:lastTranscript.substring(0,200)};
+  state.wpmHistory.push(record);
+  localStorage.setItem('et-wpm', JSON.stringify(state.wpmHistory));
+  const sess=getCurrentSession();
+  if(sess){
+    sess.wpmRecords=sess.wpmRecords||[];
+    sess.wpmRecords.push(record);
+    updateCurrentSession({wpmRecords:sess.wpmRecords});
+  }
+  renderHistory();
+  saveBtn.disabled=true;
+  saveBtn.textContent='✓ 保存しました';
+  setTimeout(()=>saveBtn.textContent='💾 結果を保存', 1500);
+});
+
+document.getElementById('clear-history').addEventListener('click',()=>{
+  if(confirm('履歴を削除しますか？')){
+    state.wpmHistory=[];
+    localStorage.setItem('et-wpm','[]');
+    renderHistory();
+  }
+});
+
+function renderHistory(){
+  const bar=document.getElementById('history-bar');
+  if(state.wpmHistory.length===0){
+    bar.innerHTML='<div class="empty" style="width:100%">まだ記録がありません</div>';
+    document.getElementById('stat-best').textContent='—';
+    document.getElementById('stat-avg').textContent='—';
+    document.getElementById('stat-count').textContent='0';
+    return;
+  }
+  const recent=state.wpmHistory.slice(-20);
+  const max=Math.max(...recent.map(h=>h.wpm), 1);
+  bar.innerHTML=recent.map(h=>`<div class="bar" style="height:${(h.wpm/max)*100}%" title="${h.wpm} WPM"></div>`).join('');
+  const all=state.wpmHistory.map(h=>h.wpm);
+  document.getElementById('stat-best').textContent=Math.max(...all);
+  document.getElementById('stat-avg').textContent=Math.round(all.reduce((a,b)=>a+b,0)/all.length);
+  document.getElementById('stat-count').textContent=all.length;
+}
+
+// =============== Vocab tab ===============
+function renderVocab(){
+  const list=document.getElementById('word-list');
+  const entries=Object.entries(state.vocab);
+  document.getElementById('vocab-total').textContent=entries.length;
+  document.getElementById('vocab-learning').textContent=entries.filter(([_,v])=>v.status==='learning').length;
+  document.getElementById('vocab-mastered').textContent=entries.filter(([_,v])=>v.status==='mastered').length;
+  if(entries.length===0){
+    list.innerHTML='<div class="empty">まだ単語がありません。Step 3で「＋単語帳に追加」してください。</div>';
+    return;
+  }
+  list.innerHTML=entries.map(([term,v])=>`
+    <div class="word-card">
+      <div style="flex:1; min-width:0">
+        <div class="term">${escapeHtml(term)} <button onclick="speak('${term.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:16px;padding:0 4px">🔊</button></div>
+        <div class="meaning">${escapeHtml(v.meaning||'')}</div>
+      </div>
+      <div class="status">
+        <button class="${v.status==='learning'?'active learning':''}" onclick="setVocabStatus('${term.replace(/'/g,"\\'")}','learning')">学習</button>
+        <button class="${v.status==='mastered'?'active mastered':''}" onclick="setVocabStatus('${term.replace(/'/g,"\\'")}','mastered')">習得</button>
+        <button onclick="removeVocab('${term.replace(/'/g,"\\'")}')" style="color:var(--bad)">×</button>
+      </div>
+    </div>`).join('');
+}
+window.setVocabStatus=(term,status)=>{
+  if(state.vocab[term]){state.vocab[term].status=status; localStorage.setItem('et-vocab', JSON.stringify(state.vocab)); renderVocab()}
+};
+window.removeVocab=(term)=>{
+  if(confirm('削除しますか？')){delete state.vocab[term]; localStorage.setItem('et-vocab', JSON.stringify(state.vocab)); renderVocab()}
+};
+
+// =============== Sessions ===============
+function escapeChat(msgs, opts={}){
+  // opts.vocab = true to highlight vocab terms (use for English Q&A)
+  return (msgs||[]).map(m=>{
+    const cls=m.role==='user'?'user':'ai';
+    const html = processText(m.content, {vocab:!!opts.vocab, markdown:true});
+    return `<div class="msg ${cls}" style="margin-bottom:8px">${html}</div>`;
+  }).join('');
+}
+
+function formatSessionAsText(s){
+  let t=`===========================================\n`;
+  t+=`セッション: ${s.title}\n`;
+  t+=`テーマ: ${s.theme||''}\n`;
+  t+=`作成: ${formatDate(s.createdAt)}\n`;
+  t+=`更新: ${formatDate(s.updatedAt)}\n`;
+  t+=`===========================================\n\n`;
+  if((s.step1Chat||[]).length){
+    t+=`■■■ ① 日本語壁打ち ■■■\n\n`;
+    s.step1Chat.forEach(m=>{t+=`[${m.role==='user'?'You':'Claude'}]\n${m.content}\n\n`});
+  }
+  if(s.script){t+=`\n■■■ ② 英語スクリプト ■■■\n\n${s.script}\n\n`}
+  if((s.step4Chat||[]).length){
+    t+=`\n■■■ ④ 英語Q&A ■■■\n\n`;
+    s.step4Chat.forEach(m=>{t+=`[${m.role==='user'?'You':'Claude'}]\n${m.content}\n\n`});
+  }
+  if(s.feedback){t+=`\n■■■ 📝 フィードバック ■■■\n\n${s.feedback}\n\n`}
+  if((s.wpmRecords||[]).length){
+    t+=`\n■■■ 🎙 WPM記録 ■■■\n\n`;
+    s.wpmRecords.forEach(r=>{t+=`${formatDate(r.ts)}: ${r.wpm} WPM\n`});
+  }
+  return t;
+}
+
+function copySession(id){
+  const s=state.sessions.find(x=>x.id===id);
+  if(!s) return;
+  navigator.clipboard.writeText(formatSessionAsText(s));
+  alert('セッション全文をコピーしました');
+}
+window.copySession=copySession;
+
+function renderSessions(){
+  const list=document.getElementById('session-list');
+  const search=(document.getElementById('session-search').value||'').toLowerCase();
+  let sessions=[...state.sessions].sort((a,b)=>b.updatedAt-a.updatedAt);
+  if(search){
+    sessions=sessions.filter(s=>
+      (s.title||'').toLowerCase().includes(search)||
+      (s.theme||'').toLowerCase().includes(search)||
+      (s.script||'').toLowerCase().includes(search)||
+      JSON.stringify(s.step1Chat||[]).toLowerCase().includes(search)||
+      JSON.stringify(s.step4Chat||[]).toLowerCase().includes(search)
+    );
+  }
+  if(sessions.length===0){
+    list.innerHTML='<div class="empty">'+(state.sessions.length===0?'まだセッションがありません。<br>上の「🆕 新規」から始めてください。':'該当なし')+'</div>';
+    return;
+  }
+  list.innerHTML=sessions.map(s=>{
+    const isCurrent=s.id===state.currentSessionId;
+    const step1Count=(s.step1Chat||[]).length;
+    const hasScript=!!(s.script && s.script.length>20);
+    const step4Count=(s.step4Chat||[]).length;
+    const hasFeedback=!!s.feedback;
+    const wpmCount=(s.wpmRecords||[]).length;
+    const wordCount=hasScript?s.script.split(/\s+/).length:0;
+
+    const badges=[
+      step1Count>=2?`<span style="background:var(--accent);color:#0f172a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">① 壁打ち ${Math.floor(step1Count/2)}往復</span>`:`<span style="background:var(--panel);color:var(--muted);padding:2px 6px;border-radius:4px;font-size:10px">① 未完</span>`,
+      hasScript?`<span style="background:var(--warn);color:#0f172a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">② Script ${wordCount}語</span>`:`<span style="background:var(--panel);color:var(--muted);padding:2px 6px;border-radius:4px;font-size:10px">② 未作成</span>`,
+      step4Count>=2?`<span style="background:var(--accent2);color:#0f172a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">④ Q&A ${Math.floor(step4Count/2)}往復</span>`:`<span style="background:var(--panel);color:var(--muted);padding:2px 6px;border-radius:4px;font-size:10px">④ 未実施</span>`,
+      hasFeedback?`<span style="background:var(--good);color:#0f172a;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">📝 振返済</span>`:'',
+      wpmCount>0?`<span style="background:var(--bad);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600">🎙 WPM ${wpmCount}件</span>`:''
+    ].filter(Boolean).join(' ');
+
+    let sections='';
+    if(step1Count>0){
+      // Japanese chat - markdown only, no vocab
+      sections+=`<details class="session-section"><summary style="color:var(--accent)">① 日本語壁打ち（${Math.floor(step1Count/2)}往復）</summary><div class="session-content">${escapeChat(s.step1Chat)}</div></details>`;
+    }
+    if(hasScript){
+      // English script - vocab highlighting (tap to popup)
+      sections+=`<details class="session-section"><summary style="color:var(--warn)">② 英語スクリプト（${wordCount}語）<span style="font-size:10px;color:var(--muted);margin-left:6px">タップで解説</span></summary><div class="session-content">${processText(s.script, {vocab:true, markdown:false})}</div></details>`;
+    }
+    if(step4Count>0){
+      // English Q&A - vocab highlighting on both sides (English)
+      sections+=`<details class="session-section"><summary style="color:var(--accent2)">④ 英語Q&A（${Math.floor(step4Count/2)}往復）<span style="font-size:10px;color:var(--muted);margin-left:6px">タップで解説</span></summary><div class="session-content">${escapeChat(s.step4Chat, {vocab:true})}</div></details>`;
+    }
+    if(hasFeedback){
+      // Feedback - markdown + vocab (it contains English example phrases)
+      sections+=`<details class="session-section"><summary style="color:var(--good)">📝 フィードバック</summary><div class="session-content">${processText(s.feedback, {vocab:true, markdown:true})}</div></details>`;
+    }
+    if(wpmCount>0){
+      sections+=`<details class="session-section"><summary style="color:var(--bad)">🎙 WPM記録（${wpmCount}件）</summary><div class="session-content">${s.wpmRecords.map(r=>`${formatDate(r.ts)}: <strong style="color:var(--accent)">${r.wpm} WPM</strong>`).join('<br>')}</div></details>`;
+    }
+
+    return `
+      <div class="session-card${isCurrent?' current':''}">
+        <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap">
+          ${isCurrent?'<span style="background:var(--accent);color:#0f172a;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">▶ 現在</span>':''}
+          <span style="font-size:11px;color:var(--muted)">${formatDate(s.createdAt)}</span>
+          ${s.theme?`<span style="background:var(--panel);padding:2px 6px;border-radius:4px;font-size:10px;color:var(--muted)">#${escapeHtml(s.theme)}</span>`:''}
+        </div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:6px">${escapeHtml(s.title||'(無題)')}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">${badges}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          ${!isCurrent?`<button class="btn" style="font-size:11px;padding:6px 12px;min-height:32px" onclick="loadSession('${s.id}')">📥 読込み</button>`:''}
+          <button class="btn secondary" style="font-size:11px;padding:6px 10px;min-height:32px" onclick="copySession('${s.id}')">📋 全文コピー</button>
+          <button class="btn secondary" style="font-size:11px;padding:6px 10px;color:var(--bad);min-height:32px" onclick="deleteSession('${s.id}')">🗑 削除</button>
+        </div>
+        ${sections}
+      </div>`;
+  }).join('');
+  // Attach vocab click handlers to any newly rendered .word elements in session view
+  attachVocabClicks(list);
+}
+
+document.getElementById('session-search').addEventListener('input', renderSessions);
+
+document.getElementById('export-sessions-txt').addEventListener('click',()=>{
+  if(state.sessions.length===0){alert('セッションがありません');return}
+  const txt=state.sessions.map(formatSessionAsText).join('\n\n\n');
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`english-trainer-sessions-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('export-sessions-json').addEventListener('click',()=>{
+  if(state.sessions.length===0){alert('セッションがありません');return}
+  const blob=new Blob([JSON.stringify(state.sessions,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`english-trainer-sessions-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('import-sessions').addEventListener('click',()=>document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error('Invalid format');
+      const merge=confirm(`${data.length}件のセッションを読み込みます。\nOK=既存に追加 / キャンセル=置き換え`);
+      if(merge) state.sessions=[...data, ...state.sessions];
+      else {if(!confirm('既存を全て削除しますか？')) return; state.sessions=data}
+      saveSessions();
+      renderSessions();
+      alert('インポート完了');
+    }catch(err){alert('読み込み失敗: '+err.message)}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
+// =============== Routine ===============
+function loadRoutine(){
+  document.querySelectorAll('#routine-list input[type="checkbox"]').forEach(cb=>{
+    cb.checked=!!state.routine[cb.dataset.key];
+    if(cb.checked) cb.closest('.check-item').classList.add('done');
+    cb.addEventListener('change',()=>{
+      state.routine[cb.dataset.key]=cb.checked;
+      localStorage.setItem('et-routine', JSON.stringify(state.routine));
+      cb.closest('.check-item').classList.toggle('done', cb.checked);
+    });
+  });
+}
+document.getElementById('reset-routine').addEventListener('click',()=>{
+  if(confirm('今週分をリセットしますか？')){
+    state.routine={};
+    localStorage.setItem('et-routine','{}');
+    document.querySelectorAll('#routine-list input').forEach(cb=>{cb.checked=false; cb.closest('.check-item').classList.remove('done')});
+  }
+});
+
+// Save before leaving page
+window.addEventListener('beforeunload', autoSaveToSession);
+window.addEventListener('pagehide', autoSaveToSession);
+// Also save when window loses focus (iOS background)
+window.addEventListener('blur', autoSaveToSession);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='hidden') autoSaveToSession();
+});
+
+// =============== Init ===============
+function init(){
+  if('speechSynthesis' in window) speechSynthesis.getVoices();
+  renderScript();
+  renderHistory();
+  loadRoutine();
+  renderSessions();
+  renderSessionBar();
+}
+init();
+</script>
+</body>
+</html>
