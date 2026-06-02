@@ -107,10 +107,12 @@
 
   /* Step 3 script */
   .script{background:#0f172a; padding:16px; border-radius:8px; line-height:2.1; font-size:16px; border:1px solid var(--border); position:relative; z-index:1}
-  .script .word{position:relative; cursor:pointer; padding:2px 4px; border-radius:3px; transition:transform .15s; display:inline-block; user-select:none; -webkit-user-select:none}
-  .script .word:active{transform:scale(0.97); opacity:0.7}
-  .script .vocab{background:rgba(56,189,248,.18); color:var(--accent); border-bottom:2px solid var(--accent)}
-  .script .phrase{background:rgba(167,139,250,.18); color:var(--accent2); border-bottom:2px solid var(--accent2)}
+  /* .word / .vocab / .phrase are used both in the Step 3 script AND in the
+     session history (.session-content), so they must NOT be scoped to .script */
+  .word{position:relative; cursor:pointer; padding:2px 4px; border-radius:3px; transition:transform .15s; display:inline-block; user-select:none; -webkit-user-select:none}
+  .word:active{transform:scale(0.97); opacity:0.7}
+  .vocab{background:rgba(56,189,248,.18); color:var(--accent); border-bottom:2px solid var(--accent)}
+  .phrase{background:rgba(167,139,250,.18); color:var(--accent2); border-bottom:2px solid var(--accent2)}
   .script .slash{color:var(--warn); margin:0 2px}
 
   .vocab-popup{position:fixed; background:#0f172a; border:1px solid var(--accent); border-radius:10px; padding:14px; max-width:320px; z-index:1000; box-shadow:0 10px 40px rgba(0,0,0,.5); display:none; font-size:13px; line-height:1.6}
@@ -995,16 +997,27 @@ function showVocab(e, term){
   document.getElementById('vp-note').textContent='💡 '+data.note;
   document.getElementById('vp-example').textContent='"'+data.example+'"';
   popup.style.display='block';
-  // Position
+  // Position — popup is position:fixed, so use viewport coordinates directly
+  // (do NOT add scrollX/scrollY, that caused the popup to drift far below the word)
   const target=e.currentTarget||e.target;
   const rect=target.getBoundingClientRect();
   const popupH=popup.offsetHeight, popupW=popup.offsetWidth;
-  let top=rect.bottom+8, left=rect.left;
-  if(left+popupW>window.innerWidth-20) left=window.innerWidth-popupW-20;
-  if(top+popupH>window.innerHeight-20) top=rect.top-popupH-8;
-  if(top<10) top=10;
-  popup.style.top=(top+window.scrollY)+'px';
-  popup.style.left=Math.max(10, left+window.scrollX)+'px';
+  const margin=10;
+  // Prefer just below the tapped word
+  let top=rect.bottom+8;
+  let left=rect.left;
+  // Keep within horizontal bounds
+  if(left+popupW>window.innerWidth-margin) left=window.innerWidth-popupW-margin;
+  if(left<margin) left=margin;
+  // If it would overflow the bottom, flip above the word instead
+  if(top+popupH>window.innerHeight-margin){
+    const above=rect.top-popupH-8;
+    if(above>=margin) top=above;            // enough room above → place above
+    else top=window.innerHeight-popupH-margin; // otherwise pin to bottom edge
+  }
+  if(top<margin) top=margin;
+  popup.style.top=top+'px';
+  popup.style.left=left+'px';
 
   const addBtn=document.getElementById('vp-add');
   if(state.vocab[term]){addBtn.textContent='✓ 追加済み'; addBtn.classList.add('added')}
