@@ -244,6 +244,21 @@
       <p>下の設定でテーマ・レベルを決めて、AIと日本語で対話。話したい内容を引き出します。送信のたび自動保存されます。</p>
 
       <div style="background:var(--panel2); padding:12px; border-radius:8px; margin-bottom:14px">
+        <div style="font-size:11px; color:var(--accent); margin-bottom:8px; font-weight:700">🔑 APIキー設定（この端末に保存）</div>
+        <p style="font-size:11px; color:var(--muted); margin:0 0 8px; line-height:1.5">
+          Anthropic Console で取得したキー（sk-ant-... ）を入力してください。入力後はこの端末のブラウザに保存され、次回から自動で読み込まれます。コードに貼り付ける必要はありません。
+        </p>
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" style="font-size:14px; padding:10px; margin-bottom:8px" />
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <button class="btn" id="save-api-key" style="padding:10px 14px; font-size:13px; flex:1">💾 キーを保存</button>
+          <button class="btn secondary" id="clear-api-key" style="padding:10px 14px; font-size:13px; color:var(--bad)">🗑 削除</button>
+        </div>
+        <div style="font-size:10px; color:var(--muted); margin-top:8px; line-height:1.5">
+          ※ Console で「使用上限（Spend Limit）」を低めに設定しておくと安心です。
+        </div>
+      </div>
+
+      <div style="background:var(--panel2); padding:12px; border-radius:8px; margin-bottom:14px">
         <div style="font-size:11px; color:var(--accent); margin-bottom:8px; font-weight:700">⚙️ この会話の設定</div>
         <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px">会話テーマ</label>
         <input type="text" id="theme" placeholder="例：日常会話 / 仕事 / 旅行 / 趣味 / 食べ物" style="font-size:14px; padding:10px; margin-bottom:10px" />
@@ -408,10 +423,10 @@
 
 <script>
 // ============================================================
-// ⚠️ ここにAPIキーを貼り付けてください（個人利用）
+// APIキーはアプリ内の設定欄から入力し、この端末のブラウザに
+// 保存（localStorage）されます。コードに貼り付ける必要はありません。
 // 取得：https://console.anthropic.com/ → API Keys → Create Key
 // ============================================================
-const HARDCODED_API_KEY = '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';
 const HARDCODED_MODEL = 'claude-haiku-4-5';
 
 // =============== Default content ===============
@@ -450,7 +465,7 @@ So, going forward, I want to keep building things that matter, with people I gen
 
 // =============== State ===============
 const state = {
-  apiKey: HARDCODED_API_KEY,
+  apiKey: localStorage.getItem('et-api-key')||'',
   model: HARDCODED_MODEL,
   theme: localStorage.getItem('et-theme')||'日常会話',
   level: localStorage.getItem('et-level')||'advanced',
@@ -707,16 +722,43 @@ document.querySelectorAll('.next-step-btn').forEach(btn=>{
 document.getElementById('theme').value=state.theme;
 document.getElementById('level-select').value=state.level;
 
+// =============== API key (localStorage) ===============
+(function initApiKeyUI(){
+  const input=document.getElementById('api-key-input');
+  if(state.apiKey) input.value=state.apiKey;
+
+  document.getElementById('save-api-key').addEventListener('click',()=>{
+    const key=input.value.trim();
+    if(!key){alert('APIキーを入力してください。');return}
+    if(!key.startsWith('sk-ant')){
+      if(!confirm('「sk-ant」で始まらないキーです。このまま保存しますか？')) return;
+    }
+    state.apiKey=key;
+    localStorage.setItem('et-api-key', key);
+    updateApiStatus();
+    alert('APIキーを保存しました。この端末のブラウザに記録されます。');
+  });
+
+  document.getElementById('clear-api-key').addEventListener('click',()=>{
+    if(!confirm('保存されているAPIキーを削除しますか？')) return;
+    state.apiKey='';
+    localStorage.removeItem('et-api-key');
+    input.value='';
+    updateApiStatus();
+    alert('APIキーを削除しました。');
+  });
+})();
+
 function updateApiStatus(){
   const el=document.getElementById('api-status');
   const txt=document.getElementById('api-status-text');
-  const keyOk = state.apiKey && state.apiKey.startsWith('sk-ant') && !state.apiKey.includes('PASTE-YOUR-KEY');
+  const keyOk = state.apiKey && state.apiKey.startsWith('sk-ant');
   if(keyOk){
     el.classList.add('ok');
     txt.textContent=`✓ Haiku 4.5 | テーマ：${state.theme} | ${state.level==='advanced'?'上級':state.level==='intermediate'?'中級':'初級'}`;
   } else {
     el.classList.remove('ok');
-    txt.textContent='⚠ APIキーがコード内に設定されていません';
+    txt.textContent='⚠ APIキー未設定 — ①話を整理タブの設定欄で入力してください';
   }
 }
 updateApiStatus();
@@ -741,8 +783,8 @@ document.getElementById('save-settings').addEventListener('click',()=>{
 
 // =============== Claude API ===============
 async function callClaude(messages, system, maxTokens=1024){
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant') || state.apiKey.includes('PASTE-YOUR-KEY')){
-    throw new Error('APIキーがコード内に未設定です。HTMLファイルの HARDCODED_API_KEY に貼り付けてください。');
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){
+    throw new Error('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');
   }
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
@@ -801,7 +843,7 @@ function renderStep1History(){
 renderStep1History();
 
 async function step1Start(){
-  if(!state.apiKey || state.apiKey.includes('PASTE-YOUR-KEY')){alert('APIキーがコード内に設定されていません。HTMLファイルの<script>冒頭の HARDCODED_API_KEY に貼り付けてください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
   ensureSession();
   state.step1History=[];
   step1Chat.innerHTML='';
@@ -874,7 +916,7 @@ scriptEl.addEventListener('input',()=>{
 });
 
 document.getElementById('generate-script').addEventListener('click', async()=>{
-  if(!state.apiKey || state.apiKey.includes('PASTE-YOUR-KEY')){alert('APIキーがコード内に設定されていません。HTMLファイルの<script>冒頭の HARDCODED_API_KEY に貼り付けてください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
   if(state.step1History.length<2 && !confirm('Step 1の会話が少ないですが続けますか？')) return;
   const btn=document.getElementById('generate-script');
   btn.disabled=true;
@@ -993,7 +1035,7 @@ function showVocab(e, term){
 
 // AI vocab extraction
 document.getElementById('analyze-vocab').addEventListener('click', async()=>{
-  if(!state.apiKey || state.apiKey.includes('PASTE-YOUR-KEY')){alert('APIキーがコード内に設定されていません。HTMLファイルの<script>冒頭の HARDCODED_API_KEY に貼り付けてください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
   const btn=document.getElementById('analyze-vocab');
   btn.disabled=true;
   btn.innerHTML='<span class="spinner"></span> 抽出中...';
@@ -1064,7 +1106,7 @@ function renderStep4History(){
 renderStep4History();
 
 async function step4Start(){
-  if(!state.apiKey || state.apiKey.includes('PASTE-YOUR-KEY')){alert('APIキーがコード内に設定されていません。HTMLファイルの<script>冒頭の HARDCODED_API_KEY に貼り付けてください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
   ensureSession();
   state.step4History=[];
   step4Chat.innerHTML='';
@@ -1125,7 +1167,7 @@ step4Input.addEventListener('keydown', e=>{
 });
 
 document.getElementById('step4-feedback').addEventListener('click', async()=>{
-  if(!state.apiKey || state.apiKey.includes('PASTE-YOUR-KEY')){alert('APIキーがコード内に設定されていません。HTMLファイルの<script>冒頭の HARDCODED_API_KEY に貼り付けてください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
   if(state.step4History.length<2){alert('まず会話を進めてください');return}
   const btn=document.getElementById('step4-feedback');
   btn.disabled=true;
