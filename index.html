@@ -416,6 +416,9 @@
 // 取得：https://console.anthropic.com/ → API Keys → Create Key
 // ============================================================
 const HARDCODED_MODEL = 'claude-haiku-4-5';
+// Feedback is called only once per conversation, so quality matters more than
+// speed/cost — use a stronger model just for that call. Chat stays on Haiku.
+const FEEDBACK_MODEL = 'claude-opus-4-8';
 
 // =============== Default content ===============
 const DEFAULT_VOCAB = {
@@ -787,7 +790,7 @@ document.getElementById('save-settings').addEventListener('click',()=>{
 });
 
 // =============== Claude API ===============
-async function callClaude(messages, system, maxTokens=1024){
+async function callClaude(messages, system, maxTokens=1024, model){
   if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){
     throw new Error('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');
   }
@@ -799,7 +802,7 @@ async function callClaude(messages, system, maxTokens=1024){
       'anthropic-version':'2023-06-01',
       'anthropic-dangerous-direct-browser-access':'true'
     },
-    body:JSON.stringify({model:state.model, max_tokens:maxTokens, system:system||undefined, messages})
+    body:JSON.stringify({model:model||state.model, max_tokens:maxTokens, system:system||undefined, messages})
   });
   if(!res.ok){
     const errText=await res.text();
@@ -1051,15 +1054,12 @@ function showVocab(e, term){
   }, 100);
 }
 
-// AI vocab extraction
-document.getElementById('analyze-vocab').addEventListener('click', async()=>{
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
-  const btn=document.getElementById('analyze-vocab');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span> 抽出中...';
-  try{
-    const system='あなたは英語学習教材の編集者です。';
-    const prompt=`以下の英文から、日本人英語学習者が学ぶ価値の高い重要表現（口語フレーズ・コロケーション・慣用句）を10-15個抽出してください。
+// AI vocab extraction — shared by ③ (script) and ④ (English Q&A → 履歴 highlighting).
+// Returns the number of newly-merged terms. Merges into customVocab so terms from
+// the script and from each conversation accumulate rather than overwrite.
+async function extractKeywords(text){
+  const system='あなたは英語学習教材の編集者です。';
+  const prompt=`以下の英文から、日本人英語学習者が学ぶ価値の高い重要表現（口語フレーズ・コロケーション・慣用句）を10-15個抽出してください。
 
 【出力形式】純粋なJSON配列のみ。前置きや説明は不要。
 [
@@ -1072,17 +1072,30 @@ document.getElementById('analyze-vocab').addEventListener('click', async()=>{
 - 実用度の高いもの
 
 【英文】
-${state.script}`;
-    const reply=await callClaude([{role:'user', content:prompt}], system, 3000);
-    const m=reply.match(/\[[\s\S]*\]/);
-    if(!m) throw new Error('JSONが見つかりません');
-    const arr=JSON.parse(m[0]);
-    const obj={};
-    arr.forEach(v=>{if(v.term) obj[v.term]={meaning:v.meaning||'',note:v.note||'',example:v.example||''}});
-    state.customVocab=obj;
-    localStorage.setItem('et-custom-vocab', JSON.stringify(state.customVocab));
+${text}`;
+  const reply=await callClaude([{role:'user', content:prompt}], system, 3000);
+  const m=reply.match(/\[[\s\S]*\]/);
+  if(!m) throw new Error('JSONが見つかりません');
+  const arr=JSON.parse(m[0]);
+  let added=0;
+  arr.forEach(v=>{
+    if(v.term){ state.customVocab[v.term]={meaning:v.meaning||'',note:v.note||'',example:v.example||''}; added++; }
+  });
+  localStorage.setItem('et-custom-vocab', JSON.stringify(state.customVocab));
+  return added;
+}
+
+// ③ script keyword extraction
+document.getElementById('analyze-vocab').addEventListener('click', async()=>{
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
+  if(!state.script || !state.script.trim()){alert('先にスクリプトを作成してください。');return}
+  const btn=document.getElementById('analyze-vocab');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> 抽出中...';
+  try{
+    const added=await extractKeywords(state.script);
     renderScript();
-    btn.innerHTML=`✓ ${arr.length}個抽出`;
+    btn.innerHTML=`✓ ${added}個抽出`;
     setTimeout(()=>btn.innerHTML='🔍 AIで重要表現を抽出（タップで解説）', 2000);
   }catch(e){
     alert('エラー: '+e.message);
@@ -1205,11 +1218,18 @@ document.getElementById('step4-feedback').addEventListener('click', async()=>{
 
 【ユーザー発言】
 ${userMsgs}`;
-    const reply=await callClaude([{role:'user', content:prompt}], system, 2000);
+    const reply=await callClaude([{role:'user', content:prompt}], system, 2000, FEEDBACK_MODEL);
     appendMsg(step4Chat, 'ai', '📝 フィードバック\n\n'+reply);
     updateCurrentSession({feedback:reply});
-    btn.innerHTML='✓ 取得＆セッション保存';
-    setTimeout(()=>btn.innerHTML='会話終了', 2000);
+    // Also extract keywords from the whole English exchange so they become
+    // tappable in the 履歴 view (best-effort — don't fail the whole flow).
+    btn.innerHTML='<span class="spinner"></span> 重要表現を抽出中...';
+    try{
+      const convo=state.step4History.map(m=>m.content).join('\n');
+      await extractKeywords(convo);
+    }catch(_){}
+    btn.innerHTML='✓ 完了（履歴に保存＆重要表現を抽出）';
+    setTimeout(()=>btn.innerHTML='会話終了', 2500);
   }catch(e){
     alert('エラー: '+e.message);
     btn.innerHTML='会話終了';
