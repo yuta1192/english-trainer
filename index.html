@@ -283,7 +283,7 @@
       <div class="controls" style="margin-top:8px">
         <button class="btn secondary" id="step1-start">🔄 会話を最初から</button>
       </div>
-      <button class="next-step-btn" data-goto="step2">5-6往復したら次へ：② 英文を作る <span class="arrow">→</span></button>
+      <button class="next-step-btn" data-goto="step2">② 英文を作る <span class="arrow">→</span></button>
     </div>
   </section>
 
@@ -291,17 +291,10 @@
   <section id="step2" class="tabpanel" style="display:none">
     <div class="panel">
       <h2><span class="step-num">2</span>英語スクリプトを作る</h2>
-      <p>①で話した内容をもとに、AIがあなた専用の<strong>自然な英語スクリプト</strong>を生成します。生成後は自由に編集できます。</p>
-      <div class="controls">
-        <button class="btn full" id="generate-script">✨ ①の会話から英語スクリプトを生成</button>
-      </div>
-      <label style="font-size:13px; color:var(--muted); display:block; margin:14px 0 6px">英語スクリプト（編集可）</label>
-      <textarea id="step2-script" style="min-height:240px" placeholder="まだ空です。上の「✨ ①の会話から英語スクリプトを生成」ボタンを押すとスクリプトが作られます。手入力・編集もできます。"></textarea>
-      <div class="controls">
-        <button class="btn" id="apply-script">③ 音読に反映</button>
-        <button class="btn secondary" id="reset-script">サンプルに戻す</button>
-      </div>
-      <button class="next-step-btn" data-goto="step3">スクリプトができたら次へ：③ 音読練習 <span class="arrow">→</span></button>
+      <p>①で話した内容をもとに、AIがあなた専用の<strong>自然な英語スクリプト</strong>を生成します。①の「② 英文を作る」ボタンを押すと自動生成され、ここで自由に編集できます。</p>
+      <label style="font-size:13px; color:var(--muted); display:block; margin:0 0 6px">英語スクリプト（編集可）</label>
+      <textarea id="step2-script" style="min-height:240px" placeholder="①で「② 英文を作る」へ進むと、ここに英語スクリプトが自動生成されます。手入力・編集もできます。"></textarea>
+      <button class="next-step-btn" data-goto="step3">③ 音読練習 <span class="arrow">→</span></button>
     </div>
   </section>
 
@@ -338,7 +331,7 @@
   <section id="step4" class="tabpanel" style="display:none">
     <div class="panel">
       <h2><span class="step-num">4</span>英語で対話</h2>
-      <p>AIと英語で会話練習。マイクは1回タップで開始/停止。会話後、<strong>「📝 フィードバック取得」</strong>で改善点が分かります。</p>
+      <p>AIと英語で会話練習。マイクは1回タップで開始/停止。会話後、<strong>「会話終了」</strong>を押すと改善点（フィードバック）が分かります。</p>
       <div class="chat" id="step4-chat">
         <div class="chat-empty">「会話開始」を押すと、Claudeが英語で質問してきます。</div>
       </div>
@@ -349,15 +342,8 @@
       </div>
       <div class="controls" style="margin-top:8px">
         <button class="btn secondary" id="step4-start">🔄 会話を最初から</button>
-        <button class="btn secondary" id="step4-feedback">📝 フィードバック取得</button>
+        <button class="btn secondary" id="step4-feedback">会話終了</button>
       </div>
-      <details>
-        <summary>🔊 設定</summary>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px">
-          <input type="checkbox" id="auto-speak" checked style="width:18px; height:18px; accent-color:var(--accent)">
-          AIの返答を自動音声再生する
-        </label>
-      </details>
     </div>
   </section>
 
@@ -715,9 +701,20 @@ function switchToTab(tabName){
 document.querySelectorAll('.tab').forEach(btn=>{
   btn.addEventListener('click',()=>switchToTab(btn.dataset.tab));
 });
-// Next-step buttons
+// Next-step buttons. ① → ② also generates the script; ② → ③ also applies it.
 document.querySelectorAll('.next-step-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>switchToTab(btn.dataset.goto));
+  btn.addEventListener('click', async ()=>{
+    const goto=btn.dataset.goto;
+    if(goto==='step2'){
+      switchToTab('step2');
+      await generateScript();
+    } else if(goto==='step3'){
+      applyScriptToReading();
+      switchToTab('step3');  // switchToTab('step3') calls renderScript()
+    } else {
+      switchToTab(goto);
+    }
+  });
 });
 
 // =============== Theme & Level settings (in Step 1) ===============
@@ -926,12 +923,16 @@ scriptEl.addEventListener('input',()=>{
   if(getCurrentSession()) updateCurrentSession({script:state.script});
 });
 
-document.getElementById('generate-script').addEventListener('click', async()=>{
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
-  if(state.step1History.length<2 && !confirm('Step 1の会話が少ないですが続けますか？')) return;
-  const btn=document.getElementById('generate-script');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span> 生成中...';
+// Generate the English script from the Step 1 conversation. Triggered by the
+// ① "② 英文を作る" next-step button (which also switches to Step 2). Shows
+// progress in the textarea itself since there's no dedicated generate button.
+async function generateScript(){
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return false}
+  if(state.step1History.length<2 && !confirm('①の会話が少ないですが続けますか？')) return false;
+  const prevPlaceholder=scriptEl.placeholder;
+  scriptEl.disabled=true;
+  scriptEl.value='';
+  scriptEl.placeholder='✨ ①の会話から英語スクリプトを生成中...';
   try{
     const sess=getCurrentSession();
     const topic=sess?sess.theme:state.theme;
@@ -956,31 +957,22 @@ ${convo}
     state.script=reply.trim();
     localStorage.setItem('et-script', state.script);
     updateCurrentSession({script:state.script});
-    btn.innerHTML='✓ 生成＆セッション保存';
-    setTimeout(()=>btn.innerHTML='✨ ①の会話から英語スクリプトを生成', 2000);
+    return true;
   }catch(e){
     alert('エラー: '+e.message);
-    btn.innerHTML='✨ ①の会話から英語スクリプトを生成';
+    return false;
   }finally{
-    btn.disabled=false;
+    scriptEl.disabled=false;
+    scriptEl.placeholder=prevPlaceholder;
   }
-});
+}
 
-document.getElementById('apply-script').addEventListener('click',()=>{
+// Apply the current Step 2 textarea content to the Step 3 音読 view.
+function applyScriptToReading(){
   state.script=scriptEl.value;
   localStorage.setItem('et-script', state.script);
   if(getCurrentSession()) updateCurrentSession({script:state.script});
-  renderScript();
-  alert('Step 3に反映しました');
-});
-document.getElementById('reset-script').addEventListener('click',()=>{
-  if(confirm('サンプルに戻しますか？')){
-    scriptEl.value=DEFAULT_SCRIPT;
-    state.script=DEFAULT_SCRIPT;
-    localStorage.setItem('et-script', DEFAULT_SCRIPT);
-    renderScript();
-  }
-});
+}
 
 // =============== Step 3: Script with vocab (improved click responsiveness) ===============
 function renderScript(){
@@ -1150,7 +1142,7 @@ async function step4Start(){
     localStorage.setItem('et-step4-history', JSON.stringify(state.step4History));
     updateCurrentSession({step4Chat:[...state.step4History]});
     appendMsg(step4Chat, 'ai', reply);
-    if(document.getElementById('auto-speak').checked) speak(reply, 1.0);
+    speak(reply, 1.0);  // AIの返答を自動音声再生（設定UIは廃止し常時ON）
   }catch(e){
     setThinking(step4Chat, false);
     appendMsg(step4Chat, 'ai', '⚠ '+e.message, {className:'error'});
@@ -1182,7 +1174,7 @@ async function step4Send(){
     localStorage.setItem('et-step4-history', JSON.stringify(state.step4History));
     updateCurrentSession({step4Chat:[...state.step4History]});
     appendMsg(step4Chat, 'ai', reply);
-    if(document.getElementById('auto-speak').checked) speak(reply, 1.0);
+    speak(reply, 1.0);  // AIの返答を自動音声再生（設定UIは廃止し常時ON）
   }catch(e){
     setThinking(step4Chat, false);
     appendMsg(step4Chat, 'ai', '⚠ '+e.message, {className:'error'});
@@ -1217,10 +1209,10 @@ ${userMsgs}`;
     appendMsg(step4Chat, 'ai', '📝 フィードバック\n\n'+reply);
     updateCurrentSession({feedback:reply});
     btn.innerHTML='✓ 取得＆セッション保存';
-    setTimeout(()=>btn.innerHTML='📝 フィードバック取得', 2000);
+    setTimeout(()=>btn.innerHTML='会話終了', 2000);
   }catch(e){
     alert('エラー: '+e.message);
-    btn.innerHTML='📝 フィードバック取得';
+    btn.innerHTML='会話終了';
   }finally{btn.disabled=false}
 });
 
