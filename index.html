@@ -43,12 +43,14 @@
   .session-bar .actions{display:flex; gap:6px; flex-shrink:0}
   .session-bar .actions button{padding:8px 12px; font-size:12px; min-height:36px}
 
-  .tabs{display:grid; grid-template-columns:repeat(6,1fr); gap:4px; margin-bottom:16px; background:var(--panel); padding:5px; border-radius:12px}
-  .tab{padding:10px 6px; border:none; background:transparent; color:var(--muted); border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all .2s; min-height:44px; line-height:1.3; text-align:center}
+  .tabs{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; margin-bottom:16px; background:var(--panel); padding:5px; border-radius:12px}
+  .tabs.top-tabs{grid-template-columns:repeat(3,minmax(0,1fr)); margin-bottom:8px}
+  .tabs.step-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .tab{padding:10px 6px; border:none; background:transparent; color:var(--muted); border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all .2s; min-height:44px; line-height:1.3; text-align:center; white-space:nowrap}
   .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a}
   @media(max-width:600px){
-    .tabs{grid-template-columns:repeat(6,1fr); gap:2px; padding:3px}
-    .tab{padding:8px 2px; font-size:10px; min-height:42px}
+    .tabs{grid-template-columns:repeat(6,minmax(0,1fr)); gap:2px; padding:3px}
+    .tab{padding:8px 2px; font-size:11px; min-height:42px; overflow:hidden}
   }
 
   /* Flow indicator */
@@ -193,56 +195,31 @@
   <div class="subtitle">1日20分でペラペラに — AI内蔵スタンドアロン版</div>
   <div class="api-status" id="api-status"><span class="dot"></span><span id="api-status-text">接続確認中...</span></div>
 
-  <div class="session-bar">
-    <div style="min-width:0; flex:1">
-      <div class="label">現在のセッション</div>
-      <div class="title" id="current-session-title">なし — 新規開始してください</div>
-      <div class="progress" id="session-progress">
-        <span class="step" data-step="step1">① 壁打ち</span>
-        <span class="step" data-step="script">② Script</span>
-        <span class="step" data-step="step4">④ Q&A</span>
-        <span class="step" data-step="feedback">📝 振返り</span>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="btn" id="new-session-btn">🆕 新規</button>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab active" data-tab="step1">①<br>話を整理</button>
-    <button class="tab" data-tab="step2">②<br>英文を作る</button>
-    <button class="tab" data-tab="step3">③<br>音読練習</button>
-    <button class="tab" data-tab="step4">④<br>英語で対話</button>
-    <button class="tab" data-tab="vocab">📚<br>単語帳</button>
+  <!-- Top nav: always visible -->
+  <div class="tabs top-tabs">
+    <button class="tab active" data-tab="setup">⚙️<br>初期設定</button>
+    <button class="tab" data-tab="vocab">📚<br>英単語</button>
     <button class="tab" data-tab="sessions">💬<br>履歴</button>
   </div>
 
-  <!-- STEP 1 -->
-  <section id="step1" class="tabpanel">
-    <div id="welcome-box" class="panel" style="display:none">
-      <h2>👋 はじめての方へ</h2>
-      <p style="color:var(--text)">このアプリは <strong>1日20分で英語をペラペラ</strong> にするための4ステップ学習ツールです。下の順番で進めてください。</p>
-      <div style="display:grid; gap:8px; margin:14px 0">
-        <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">1</span><div><div style="font-weight:700">話を整理</div><div style="font-size:12px; color:var(--muted)">日本語で話したい内容をAIと整理</div></div></div>
-        <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">2</span><div><div style="font-weight:700">英文を作る</div><div style="font-size:12px; color:var(--muted)">AIが自然な英語スクリプトを生成</div></div></div>
-        <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">3</span><div><div style="font-weight:700">音読練習</div><div style="font-size:12px; color:var(--muted)">音声を聴き、感情込めて声に出す</div></div></div>
-        <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">4</span><div><div style="font-weight:700">英語で対話</div><div style="font-size:12px; color:var(--muted)">AIと英会話＆フィードバック</div></div></div>
-      </div>
-      <div class="info">
-        <strong>💡 まずはじめに</strong><br>
-        ① 下の <b>会話テーマ</b>（例：仕事 / 日常会話 / 旅行）と <b>英語レベル</b> を設定<br>
-        ② 上部の「🆕 新規」ボタンで <b>セッション開始</b><br>
-        ③ チャットで会話スタート
-      </div>
-      <div class="controls">
-        <button class="btn secondary full" onclick="document.getElementById('welcome-box').style.display='none'; localStorage.setItem('et-welcomed','1')">はじめます！（このガイドを閉じる）</button>
-      </div>
-    </div>
+  <!-- Step tabs: revealed after「テーマを保存して開始」 -->
+  <div class="tabs step-tabs" id="step-tabs" style="display:none">
+    <button class="tab" data-tab="step1">①<br>整理</button>
+    <button class="tab" data-tab="step2">②<br>英作文</button>
+    <button class="tab" data-tab="step3">③<br>音読</button>
+    <button class="tab" data-tab="step4">④<br>対話</button>
+  </div>
 
+  <!-- SETUP (初期設定) -->
+  <section id="setup" class="tabpanel">
     <div class="panel">
-      <h2><span class="step-num">1</span>話したい内容を日本語で整理</h2>
-      <p>下の設定でテーマ・レベルを決めて、AIと日本語で対話。話したい内容を引き出します。送信のたび自動保存されます。</p>
+      <h2>⚙️ 初期設定</h2>
+      <p>セッション名・APIキー・この会話の設定を決めて、下の「テーマを保存して開始」を押してください。</p>
+
+      <div style="background:var(--panel2); padding:12px; border-radius:8px; margin-bottom:14px">
+        <div style="font-size:11px; color:var(--accent); margin-bottom:8px; font-weight:700">📝 セッション名</div>
+        <input type="text" id="session-name" placeholder="例：日常英会話の練習（空欄ならテーマ名）" style="font-size:14px; padding:10px" />
+      </div>
 
       <div style="background:var(--panel2); padding:12px; border-radius:8px; margin-bottom:14px">
         <div style="font-size:11px; color:var(--accent); margin-bottom:8px; font-weight:700">🔑 APIキー設定（この端末に保存）</div>
@@ -264,13 +241,22 @@
         <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px">会話テーマ</label>
         <input type="text" id="theme" placeholder="例：日常会話 / 仕事 / 旅行 / 趣味 / 食べ物" style="font-size:14px; padding:10px; margin-bottom:10px" />
         <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:4px">英語レベル</label>
-        <select id="level-select" style="font-size:14px; padding:10px; margin-bottom:10px">
+        <select id="level-select" style="font-size:14px; padding:10px">
           <option value="beginner">初級（簡単な単語・短文）</option>
           <option value="intermediate">中級（日常会話レベル）</option>
           <option value="advanced" selected>上級（C1相当・ネイティブ口語）</option>
         </select>
-        <button class="btn full" id="save-settings" style="padding:10px; font-size:13px">💾 テーマ・レベルを保存</button>
       </div>
+
+      <button class="btn full" id="start-session" style="padding:14px; font-size:15px">▶ テーマを保存して開始</button>
+    </div>
+  </section>
+
+  <!-- STEP 1 -->
+  <section id="step1" class="tabpanel" style="display:none">
+    <div class="panel">
+      <h2><span class="step-num">1</span>話したい内容を日本語で整理</h2>
+      <p>AIと日本語で対話して、話したい内容を引き出します。送信のたび自動保存されます。テーマやAPIキーは「⚙️ 初期設定」で変更できます。</p>
       <div class="chat" id="step1-chat">
         <div class="chat-empty">「🔄 会話を最初から」を押すと、AIから最初の質問が来ます。<br>マイクは1回タップで開始、もう一度タップで停止です。</div>
       </div>
@@ -587,8 +573,9 @@ function loadSession(id){
   renderStep4History();
   renderScript();
   renderSessionBar();
+  revealStepTabs();
   alert('セッションを読み込みました');
-  document.querySelector('[data-tab="step1"]').click();
+  switchToTab('step1');
 }
 window.loadSession = loadSession;
 
@@ -608,9 +595,12 @@ function deleteSession(id){
 }
 window.deleteSession = deleteSession;
 
+// Session bar was replaced by the 初期設定/英単語/履歴 top nav — keep this as a
+// no-op-safe stub so existing callers don't break.
 function renderSessionBar(){
   const titleEl=document.getElementById('current-session-title');
   const progEl=document.getElementById('session-progress');
+  if(!titleEl || !progEl) return;
   const sess=getCurrentSession();
   if(!sess){
     titleEl.textContent='なし — 新規開始してください';
@@ -630,15 +620,38 @@ function renderSessionBar(){
   });
 }
 
-document.getElementById('new-session-btn').addEventListener('click',()=>{
-  const t=prompt('新しいセッションのタイトル（テーマ）を入力：', state.theme);
-  if(t===null) return;
-  const title=t.trim()||state.theme;
-  createSession(title);
+// Reveal the ①〜④ step tabs (hidden until a session is started/loaded).
+function revealStepTabs(){
+  const st=document.getElementById('step-tabs');
+  if(st) st.style.display='grid';
+}
+
+// 「テーマを保存して開始」: save settings, start a new session, show step tabs, go to ①.
+document.getElementById('start-session').addEventListener('click',()=>{
+  // Save API key if a new value was typed but not yet saved.
+  const keyInput=document.getElementById('api-key-input');
+  const key=(keyInput.value||'').trim();
+  if(key && key!==state.apiKey && key.startsWith('sk-ant')){
+    state.apiKey=key;
+    localStorage.setItem('et-api-key', key);
+  }
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){
+    if(!confirm('APIキーが未設定です。後から「初期設定」で設定できますが、このまま開始しますか？')) return;
+  }
+  // Save theme/level.
+  state.theme=document.getElementById('theme').value.trim()||'日常会話';
+  state.level=document.getElementById('level-select').value;
+  localStorage.setItem('et-theme', state.theme);
+  localStorage.setItem('et-level', state.level);
+  updateApiStatus();
+  // Start a new session named by セッション名 (falls back to theme).
+  const name=(document.getElementById('session-name').value||'').trim()||state.theme;
+  createSession(name);
   renderStep1History();
   renderStep4History();
-  alert('新セッション「'+title+'」を開始しました。\n①壁打ちから始めてください。');
-  document.querySelector('[data-tab="step1"]').click();
+  renderScript();
+  revealStepTabs();
+  switchToTab('step1');
 });
 
 // Auto-save current state to session (called on tab switch and key actions)
@@ -759,20 +772,15 @@ function updateApiStatus(){
     txt.textContent=`✓ Haiku 4.5 | テーマ：${state.theme} | ${state.level==='advanced'?'上級':state.level==='intermediate'?'中級':'初級'}`;
   } else {
     el.classList.remove('ok');
-    txt.textContent='⚠ APIキー未設定 — ①話を整理タブの設定欄で入力してください';
+    txt.textContent='⚠ APIキー未設定 — 「⚙️ 初期設定」で入力してください';
   }
 }
 updateApiStatus();
 
-document.getElementById('save-settings').addEventListener('click',()=>{
-  applyThemeLevel();
-  alert('保存しました：\nテーマ「'+state.theme+'」\nレベル「'+(state.level==='advanced'?'上級':state.level==='intermediate'?'中級':'初級')+'」');
-});
-
 // =============== Claude API ===============
 async function callClaude(messages, system, maxTokens=1024, model){
   if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){
-    throw new Error('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');
+    throw new Error('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');
   }
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
@@ -833,7 +841,7 @@ function renderStep1History(){
 renderStep1History();
 
 async function step1Start(){
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');return}
   ensureSession();
   state.step1History=[];
   step1Chat.innerHTML='';
@@ -910,7 +918,7 @@ scriptEl.addEventListener('input',()=>{
 // ① "② 英文を作る" next-step button (which also switches to Step 2). Shows
 // progress in the textarea itself since there's no dedicated generate button.
 async function generateScript(){
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return false}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');return false}
   if(state.step1History.length<2 && !confirm('①の会話が少ないですが続けますか？')) return false;
   const prevPlaceholder=scriptEl.placeholder;
   scriptEl.disabled=true;
@@ -1067,7 +1075,7 @@ ${text}`;
 
 // ③ script keyword extraction
 document.getElementById('analyze-vocab').addEventListener('click', async()=>{
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');return}
   if(!state.script || !state.script.trim()){alert('先にスクリプトを作成してください。');return}
   const btn=document.getElementById('analyze-vocab');
   btn.disabled=true;
@@ -1117,7 +1125,7 @@ function renderStep4History(){
 renderStep4History();
 
 async function step4Start(){
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');return}
   ensureSession();
   state.step4History=[];
   step4Chat.innerHTML='';
@@ -1179,7 +1187,7 @@ step4Input.addEventListener('keydown', e=>{
 });
 
 document.getElementById('step4-feedback').addEventListener('click', async()=>{
-  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「①話を整理」タブの🔑APIキー設定欄に入力して保存してください。');return}
+  if(!state.apiKey || !state.apiKey.startsWith('sk-ant')){alert('APIキーが未設定です。「⚙️ 初期設定」の🔑APIキー設定欄に入力して保存してください。');return}
   if(state.step4History.length<2){alert('まず会話を進めてください');return}
   const btn=document.getElementById('step4-feedback');
   btn.disabled=true;
@@ -1501,11 +1509,7 @@ document.addEventListener('visibilitychange', ()=>{
 // =============== Init ===============
 function init(){
   if('speechSynthesis' in window) speechSynthesis.getVoices();
-  // Show welcome box for first-timers
-  if(!localStorage.getItem('et-welcomed')){
-    const wb=document.getElementById('welcome-box');
-    if(wb) wb.style.display='block';
-  }
+  // Initial screen = 初期設定 tab; step tabs stay hidden until 開始 / 履歴読込み.
   renderScript();
   renderSessions();
   renderSessionBar();
