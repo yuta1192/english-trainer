@@ -223,7 +223,7 @@
   <section id="step1" class="tabpanel">
     <div id="welcome-box" class="panel" style="display:none">
       <h2>👋 はじめての方へ</h2>
-      <p style="color:var(--text)">このアプリは <strong>1日20分で英語をペラペラ</strong> にするための5ステップ学習ツールです。下の順番で進めてください。</p>
+      <p style="color:var(--text)">このアプリは <strong>1日20分で英語をペラペラ</strong> にするための4ステップ学習ツールです。下の順番で進めてください。</p>
       <div style="display:grid; gap:8px; margin:14px 0">
         <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">1</span><div><div style="font-weight:700">話を整理</div><div style="font-size:12px; color:var(--muted)">日本語で話したい内容をAIと整理</div></div></div>
         <div style="display:flex; align-items:center; gap:10px; padding:10px; background:var(--panel2); border-radius:8px"><span class="step-num">2</span><div><div style="font-weight:700">英文を作る</div><div style="font-size:12px; color:var(--muted)">AIが自然な英語スクリプトを生成</div></div></div>
@@ -296,7 +296,7 @@
         <button class="btn full" id="generate-script">✨ ①の会話から英語スクリプトを生成</button>
       </div>
       <label style="font-size:13px; color:var(--muted); display:block; margin:14px 0 6px">英語スクリプト（編集可）</label>
-      <textarea id="step2-script" style="min-height:240px"></textarea>
+      <textarea id="step2-script" style="min-height:240px" placeholder="まだ空です。上の「✨ ①の会話から英語スクリプトを生成」ボタンを押すとスクリプトが作られます。手入力・編集もできます。"></textarea>
       <div class="controls">
         <button class="btn" id="apply-script">③ 音読に反映</button>
         <button class="btn secondary" id="reset-script">サンプルに戻す</button>
@@ -473,7 +473,7 @@ const state = {
   level: localStorage.getItem('et-level')||'advanced',
   vocab: JSON.parse(localStorage.getItem('et-vocab')||'{}'),
   customVocab: JSON.parse(localStorage.getItem('et-custom-vocab')||'{}'),
-  script: localStorage.getItem('et-script')||DEFAULT_SCRIPT,
+  script: localStorage.getItem('et-script')||'',
   routine: JSON.parse(localStorage.getItem('et-routine')||'{}'),
   sessions: JSON.parse(localStorage.getItem('et-sessions')||'[]'),
   currentSessionId: localStorage.getItem('et-current-session')||'',
@@ -724,6 +724,25 @@ document.querySelectorAll('.next-step-btn').forEach(btn=>{
 document.getElementById('theme').value=state.theme;
 document.getElementById('level-select').value=state.level;
 
+// Apply theme/level the moment they change, so the setting reliably takes
+// effect even if the user forgets to press the 保存 button. Otherwise the
+// conversation can start on a stale/old theme.
+function applyThemeLevel(){
+  state.theme=document.getElementById('theme').value.trim()||'日常会話';
+  state.level=document.getElementById('level-select').value;
+  localStorage.setItem('et-theme', state.theme);
+  localStorage.setItem('et-level', state.level);
+  updateApiStatus();
+  const sess=getCurrentSession();
+  if(sess){
+    sess.theme=state.theme;
+    if(!sess.title || sess.title===sess.theme || sess.title.length<3) sess.title=state.theme;
+    saveSessions();
+  }
+}
+document.getElementById('theme').addEventListener('change', applyThemeLevel);
+document.getElementById('level-select').addEventListener('change', applyThemeLevel);
+
 // =============== API key (localStorage) ===============
 (function initApiKeyUI(){
   const input=document.getElementById('api-key-input');
@@ -766,20 +785,7 @@ function updateApiStatus(){
 updateApiStatus();
 
 document.getElementById('save-settings').addEventListener('click',()=>{
-  state.theme=document.getElementById('theme').value.trim()||'日常会話';
-  state.level=document.getElementById('level-select').value;
-  localStorage.setItem('et-theme', state.theme);
-  localStorage.setItem('et-level', state.level);
-  updateApiStatus();
-  // Update current session theme too
-  const sess = getCurrentSession();
-  if(sess){
-    sess.theme = state.theme;
-    if(!sess.title || sess.title === sess.theme || sess.title.length < 3){
-      sess.title = state.theme;
-    }
-    saveSessions();
-  }
+  applyThemeLevel();
   alert('保存しました：\nテーマ「'+state.theme+'」\nレベル「'+(state.level==='advanced'?'上級':state.level==='intermediate'?'中級':'初級')+'」');
 });
 
@@ -805,7 +811,9 @@ async function callClaude(messages, system, maxTokens=1024){
     throw new Error(`API Error (${res.status}): ${errMsg}`);
   }
   const data=await res.json();
-  return data.content[0].text;
+  const textBlock=(data.content||[]).find(b=>b.type==='text');
+  if(!textBlock) throw new Error('APIからテキスト応答が返りませんでした。');
+  return textBlock.text;
 }
 
 // =============== Chat utilities ===============
@@ -853,7 +861,7 @@ async function step1Start(){
   try{
     const sess=getCurrentSession();
     const topic=sess?sess.theme:state.theme;
-    const system=`あなたは英語学習者の日本語会話パートナーです。ユーザーが「${topic}」について英語で話せるようになるよう、自然な対話で思考整理を手伝います。\n\n【最重要ルール】\n- 話題は「${topic}」です。絶対にこの話題から外れないでください\n- ユーザーの発言に対し、まず自然な反応（共感・驚き・興味など）を1文示してください\n- その後、話を深める具体的な質問を1つだけしてください\n- 例：話題が「日常会話」でユーザーが「今日天気よかった」と言ったら、「いいですね、爽やかな1日でしたね！何か外でやったんですか？」のように\n- 仕事・キャリアに勝手に話を結びつけないでください\n- 質問は短く、抽象的でなく具体的に\n- 5-6往復で十分な素材を集める`;
+    const system=`あなたは英語学習者の日本語会話パートナーです。ユーザーが「${topic}」について英語で話せるよう、自然な雑談で話す内容を引き出します。\n\n【ルール】\n- この会話のテーマは「${topic}」です。終始「${topic}」に関する身近で具体的な話だけを扱ってください\n- ユーザー自身が別の話題を持ち出さない限り、あなたから話題を変えたり広げたりしないでください\n- まずユーザーの発言に自然な反応（共感・驚き・興味など）を1文\n- 続けて「${topic}」を一歩深める、短く具体的な質問を1つだけ\n- 抽象的な質問は避け、その日の出来事や具体的な場面を尋ねる\n- 5〜6往復で十分な素材を集める\n\n最初のメッセージとして、「${topic}」に沿った軽い導入と、答えやすく具体的な質問を1つだけ投げてください。`;
     const reply=await callClaude([{role:'user', content:`「${topic}」について話せるようになりたいです。最初の質問をお願いします。`}], system, 400);
     setThinking(step1Chat, false);
     state.step1History.push({role:'assistant', content:reply});
@@ -877,13 +885,14 @@ async function step1Send(){
   }
   appendMsg(step1Chat, 'user', text);
   state.step1History.push({role:'user', content:text});
+  if(micControllers['step1-input']) micControllers['step1-input'].stop();
   step1Input.value='';
   step1Input.style.height='auto';
   setThinking(step1Chat, true);
   try{
     const sess=getCurrentSession();
     const topic=sess?sess.theme:state.theme;
-    const system=`あなたは英語学習者の日本語会話パートナーです。話題は「${topic}」のみ。\n\n【ルール】\n- ユーザーの直前の発言に自然に反応してから次の質問へ\n- 仕事・キャリアに勝手に話を結びつけない\n- 「${topic}」の枠内で会話を深める\n- 1回につき1つだけ、短く具体的な質問`;
+    const system=`あなたは英語学習者の日本語会話パートナーです。この会話のテーマは「${topic}」だけです。\n\n【ルール】\n- 終始「${topic}」に関する身近な話題のみを扱う。ユーザー自身が別の話題を持ち出さない限り、あなたから話題を変えない\n- ユーザーの直前の発言に自然に反応してから次の質問へ\n- 「${topic}」を一歩深める、短く具体的な質問を1回に1つだけ`;
     const reply=await callClaude(state.step1History.map(m=>({role:m.role==='assistant'?'assistant':'user', content:m.content})), system, 400);
     setThinking(step1Chat, false);
     state.step1History.push({role:'assistant', content:reply});
@@ -948,10 +957,10 @@ ${convo}
     localStorage.setItem('et-script', state.script);
     updateCurrentSession({script:state.script});
     btn.innerHTML='✓ 生成＆セッション保存';
-    setTimeout(()=>btn.innerHTML='✨ Step 1の会話からスクリプトを生成', 2000);
+    setTimeout(()=>btn.innerHTML='✨ ①の会話から英語スクリプトを生成', 2000);
   }catch(e){
     alert('エラー: '+e.message);
-    btn.innerHTML='✨ Step 1の会話からスクリプトを生成';
+    btn.innerHTML='✨ ①の会話から英語スクリプトを生成';
   }finally{
     btn.disabled=false;
   }
@@ -976,7 +985,11 @@ document.getElementById('reset-script').addEventListener('click',()=>{
 // =============== Step 3: Script with vocab (improved click responsiveness) ===============
 function renderScript(){
   const display=document.getElementById('script-display');
-  const text=state.script||DEFAULT_SCRIPT;
+  const text=state.script;
+  if(!text || !text.trim()){
+    display.innerHTML='<p style="color:var(--muted)">まだスクリプトがありません。②で「✨ ①の会話から英語スクリプトを生成」を押すか、手入力したスクリプトを「③ 音読に反映」してください。</p>';
+    return;
+  }
   let html = processText(text, {vocab:true, markdown:false});
   if(state.showSlash){
     html=html.replace(/(\S+\s){5,7}/g, m=>m+'<span class="slash">/</span> ');
@@ -1078,10 +1091,10 @@ ${state.script}`;
     localStorage.setItem('et-custom-vocab', JSON.stringify(state.customVocab));
     renderScript();
     btn.innerHTML=`✓ ${arr.length}個抽出`;
-    setTimeout(()=>btn.innerHTML='🔍 AIで重要表現を抽出', 2000);
+    setTimeout(()=>btn.innerHTML='🔍 AIで重要表現を抽出（タップで解説）', 2000);
   }catch(e){
     alert('エラー: '+e.message);
-    btn.innerHTML='🔍 AIで重要表現を抽出';
+    btn.innerHTML='🔍 AIで重要表現を抽出（タップで解説）';
   }finally{btn.disabled=false}
 });
 
@@ -1130,7 +1143,7 @@ async function step4Start(){
     // Only include reference script if it was generated for this session (not the default sample)
     const hasCustomScript = sess && sess.script && sess.script.length>20 && sess.script !== DEFAULT_SCRIPT;
     const scriptContext = hasCustomScript ? `\n\nThe user has prepared this script (for context only - DO NOT just quote from it):\n${sess.script}` : '';
-    const system=`You are a friendly, curious native English conversation partner. The user wants to practice everyday spoken English about "${topic}". User level: ${state.level}.\n\nCRITICAL RULES:\n- The topic is "${topic}" — stay strictly within this topic\n- Respond NATURALLY to what the user actually said — like a friend would\n- Example: if topic is "daily conversation" and user says "It was nice weather today", react like "Oh nice! Did you get to do anything outside?"\n- Do NOT pivot to careers, business, or unrelated topics\n- Ask ONE specific follow-up question at a time\n- Keep responses short (1-3 sentences max)\n- Use natural casual native expressions\n- Don't correct grammar (feedback comes later)${scriptContext}\n\nStart with a warm opening relevant to "${topic}" and your first question.`;
+    const system=`You are a friendly, curious native English conversation partner. The user wants to practice everyday spoken English about "${topic}". User level: ${state.level}.\n\nRULES:\n- The topic of this whole conversation is "${topic}". Keep every turn within "${topic}" and everyday, down-to-earth situations related to it.\n- Unless the user themselves brings up a different subject, do not change or broaden the topic on your own.\n- Respond NATURALLY to what the user actually said — like a friend would.\n- Example: if topic is "daily conversation" and the user says "It was nice weather today", react like "Oh nice! Did you get to do anything outside?"\n- Ask ONE specific follow-up question at a time\n- Keep responses short (1-3 sentences max)\n- Use natural casual native expressions\n- Don't correct grammar (feedback comes later)${scriptContext}\n\nStart with a warm opening relevant to "${topic}" and your first question.`;
     const reply=await callClaude([{role:'user', content:`Let's start. Ask me your first question about "${topic}".`}], system, 300);
     setThinking(step4Chat, false);
     state.step4History.push({role:'assistant', content:reply});
@@ -1155,13 +1168,14 @@ async function step4Send(){
   }
   appendMsg(step4Chat, 'user', text);
   state.step4History.push({role:'user', content:text});
+  if(micControllers['step4-input']) micControllers['step4-input'].stop();
   step4Input.value='';
   step4Input.style.height='auto';
   setThinking(step4Chat, true);
   try{
     const sess=getCurrentSession();
     const topic=sess?sess.theme:state.theme;
-    const system=`You are a friendly native English conversation partner. Topic: "${topic}". User level: ${state.level}.\n\nCRITICAL: Stay strictly within "${topic}". Don't pivot to careers, business, or unrelated topics.\n\nReact naturally to what the user just said (like a friend), then ask ONE specific follow-up question. Keep responses to 1-3 sentences. Use natural casual native expressions. Don't correct grammar.`;
+    const system=`You are a friendly native English conversation partner. The topic of this whole conversation is "${topic}". User level: ${state.level}.\n\nKeep every turn within "${topic}" and everyday situations related to it. Unless the user themselves brings up a different subject, do not change or broaden the topic on your own.\n\nReact naturally to what the user just said (like a friend), then ask ONE specific follow-up question. Keep responses to 1-3 sentences. Use natural casual native expressions. Don't correct grammar.`;
     const reply=await callClaude(state.step4History.map(m=>({role:m.role==='assistant'?'assistant':'user', content:m.content})), system, 300);
     setThinking(step4Chat, false);
     state.step4History.push({role:'assistant', content:reply});
@@ -1211,12 +1225,24 @@ ${userMsgs}`;
 });
 
 // =============== Mic buttons (toggle on/off, continuous) ===============
+// micControllers lets 送信 stop/reset a still-recording mic so leftover speech
+// doesn't carry into the next message.
+const micControllers={};
 function setupMicButton(btnId, inputId, lang){
   const btn=document.getElementById(btnId);
   const input=document.getElementById(inputId);
   let recognition=null;
   let isRec=false;
   let finalText='';
+
+  function stopRecording(){
+    isRec=false;
+    if(recognition){try{recognition.stop()}catch(_){}}
+    finalText='';  // clear buffer so old speech doesn't reappear on next result
+    btn.classList.remove('recording');
+    btn.textContent='🎙';
+  }
+  micControllers[inputId]={stop:stopRecording};
 
   btn.addEventListener('click',()=>{
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1271,10 +1297,7 @@ function setupMicButton(btnId, inputId, lang){
       }
     } else {
       // STOP
-      isRec=false;
-      try{recognition.stop()}catch(_){}
-      btn.classList.remove('recording');
-      btn.textContent='🎙';
+      stopRecording();
     }
   });
 }
@@ -1295,15 +1318,25 @@ function renderVocab(){
   list.innerHTML=entries.map(([term,v])=>`
     <div class="word-card">
       <div style="flex:1; min-width:0">
-        <div class="term">${escapeHtml(term)} <button onclick="speak('${term.replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:16px;padding:0 4px">🔊</button></div>
+        <div class="term">${escapeHtml(term)} <button data-action="speak" data-term="${escapeHtml(term)}" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:16px;padding:0 4px">🔊</button></div>
         <div class="meaning">${escapeHtml(v.meaning||'')}</div>
       </div>
       <div class="status">
-        <button class="${v.status==='learning'?'active learning':''}" onclick="setVocabStatus('${term.replace(/'/g,"\\'")}','learning')">学習</button>
-        <button class="${v.status==='mastered'?'active mastered':''}" onclick="setVocabStatus('${term.replace(/'/g,"\\'")}','mastered')">習得</button>
-        <button onclick="removeVocab('${term.replace(/'/g,"\\'")}')" style="color:var(--bad)">×</button>
+        <button class="${v.status==='learning'?'active learning':''}" data-action="learning" data-term="${escapeHtml(term)}">学習</button>
+        <button class="${v.status==='mastered'?'active mastered':''}" data-action="mastered" data-term="${escapeHtml(term)}">習得</button>
+        <button data-action="remove" data-term="${escapeHtml(term)}" style="color:var(--bad)">×</button>
       </div>
     </div>`).join('');
+  // Event delegation — terms come from AI extraction and may contain quotes/backslashes,
+  // so never interpolate them into inline onclick handlers.
+  list.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const term=btn.dataset.term, action=btn.dataset.action;
+      if(action==='speak') speak(term);
+      else if(action==='learning'||action==='mastered') setVocabStatus(term, action);
+      else if(action==='remove') removeVocab(term);
+    });
+  });
 }
 window.setVocabStatus=(term,status)=>{
   if(state.vocab[term]){state.vocab[term].status=status; localStorage.setItem('et-vocab', JSON.stringify(state.vocab)); renderVocab()}
