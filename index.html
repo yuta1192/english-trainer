@@ -43,12 +43,12 @@
   .session-bar .actions{display:flex; gap:6px; flex-shrink:0}
   .session-bar .actions button{padding:8px 12px; font-size:12px; min-height:36px}
 
-  .tabs{display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:16px; background:var(--panel); padding:5px; border-radius:12px}
+  .tabs{display:grid; grid-template-columns:repeat(6,1fr); gap:4px; margin-bottom:16px; background:var(--panel); padding:5px; border-radius:12px}
   .tab{padding:10px 6px; border:none; background:transparent; color:var(--muted); border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all .2s; min-height:44px; line-height:1.3; text-align:center}
   .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0f172a}
   @media(max-width:600px){
-    .tabs{grid-template-columns:repeat(4,1fr); gap:3px; padding:4px}
-    .tab{padding:8px 4px; font-size:11px; min-height:42px}
+    .tabs{grid-template-columns:repeat(6,1fr); gap:2px; padding:3px}
+    .tab{padding:8px 2px; font-size:10px; min-height:42px}
   }
 
   /* Flow indicator */
@@ -216,7 +216,6 @@
     <button class="tab" data-tab="step4">④<br>英語で対話</button>
     <button class="tab" data-tab="vocab">📚<br>単語帳</button>
     <button class="tab" data-tab="sessions">💬<br>履歴</button>
-    <button class="tab" data-tab="routine">📅<br>ルーティン</button>
   </div>
 
   <!-- STEP 1 -->
@@ -379,24 +378,6 @@
     </div>
   </section>
 
-  <!-- ROUTINE -->
-  <section id="routine" class="tabpanel" style="display:none">
-    <div class="panel">
-      <h2>📅 1週間ルーティン</h2>
-      <div id="routine-list">
-        <label class="check-item"><input type="checkbox" data-key="r-sun" /><span><b>日曜</b>：①話を整理 + ②英文を作る</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-mon" /><span><b>月曜</b>：③音読 ×10回</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-tue" /><span><b>火曜</b>：③感情込めて音読 ×10回</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-wed" /><span><b>水曜</b>：④英語で対話 + フィードバック</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-thu" /><span><b>木曜</b>：④英語で対話 + フィードバック</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-fri" /><span><b>金曜</b>：独り言（スクリプト暗唱）</span></label>
-        <label class="check-item"><input type="checkbox" data-key="r-sat" /><span><b>土曜</b>：翌週分のテーマで①②準備</span></label>
-      </div>
-      <div class="controls">
-        <button class="btn secondary" id="reset-routine">今週分をリセット</button>
-      </div>
-    </div>
-  </section>
 </div>
 
 <div class="vocab-popup" id="vocab-popup">
@@ -463,7 +444,6 @@ const state = {
   vocab: JSON.parse(localStorage.getItem('et-vocab')||'{}'),
   customVocab: JSON.parse(localStorage.getItem('et-custom-vocab')||'{}'),
   script: localStorage.getItem('et-script')||'',
-  routine: JSON.parse(localStorage.getItem('et-routine')||'{}'),
   sessions: JSON.parse(localStorage.getItem('et-sessions')||'[]'),
   currentSessionId: localStorage.getItem('et-current-session')||'',
   step1History: JSON.parse(localStorage.getItem('et-step1-history')||'[]'),
@@ -1509,26 +1489,6 @@ document.getElementById('import-file').addEventListener('change', e=>{
   e.target.value='';
 });
 
-// =============== Routine ===============
-function loadRoutine(){
-  document.querySelectorAll('#routine-list input[type="checkbox"]').forEach(cb=>{
-    cb.checked=!!state.routine[cb.dataset.key];
-    if(cb.checked) cb.closest('.check-item').classList.add('done');
-    cb.addEventListener('change',()=>{
-      state.routine[cb.dataset.key]=cb.checked;
-      localStorage.setItem('et-routine', JSON.stringify(state.routine));
-      cb.closest('.check-item').classList.toggle('done', cb.checked);
-    });
-  });
-}
-document.getElementById('reset-routine').addEventListener('click',()=>{
-  if(confirm('今週分をリセットしますか？')){
-    state.routine={};
-    localStorage.setItem('et-routine','{}');
-    document.querySelectorAll('#routine-list input').forEach(cb=>{cb.checked=false; cb.closest('.check-item').classList.remove('done')});
-  }
-});
-
 // Save before leaving page
 window.addEventListener('beforeunload', autoSaveToSession);
 window.addEventListener('pagehide', autoSaveToSession);
@@ -1547,7 +1507,6 @@ function init(){
     if(wb) wb.style.display='block';
   }
   renderScript();
-  loadRoutine();
   renderSessions();
   renderSessionBar();
 }
